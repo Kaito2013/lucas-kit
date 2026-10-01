@@ -13,11 +13,14 @@
   Dựng màn hình app, dashboard, table, form, modal và design system chuẩn xác theo đúng thư viện component và màu sắc nhận diện của dự án — <b>loại bỏ hoàn toàn giao diện AI cẩu thả, không phá vỡ cấu trúc hiện có.</b>
 </p>
 
-[Tính Năng](#-tính-năng-nổi-bật) • [Quy Trình](#-quy-trình-làm-việc-chuẩn-designer) • [Cài Đặt](#-cài-đặt) • [Cẩm Nang Ra Lệnh](#-cẩm-nang-ra-lệnh-command-cheatsheet) • [Công Cụ Đo Đạc](#-bộ-công-cụ-kiểm-thử-tự-động-probemjs)
+[Hướng Dẫn Sử Dụng Chi Tiết](HUONG_DAN_SU_DUNG.md) • [Tính Năng](#-tính-năng-nổi-bật) • [Quy Trình](#-quy-trình-làm-việc-chuẩn-designer) • [Cài Đặt](#-cài-đặt) • [Cẩm Nang Ra Lệnh](#-cẩm-nang-ra-lệnh-command-cheatsheet) • [Công Cụ Đo Đạc](#-bộ-công-cụ-kiểm-thử-tự-động-probemjs)
 
 ---
 
 </div>
+
+> 📖 **Bạn mới bắt đầu?** Xem ngay [Cẩm Nang Hướng Dẫn Sử Dụng Chi Tiết (HUONG_DAN_SU_DUNG.md)](HUONG_DAN_SU_DUNG.md) để nắm trọn công thức viết prompt, 5 kịch bản thực chiến và checklist nghiệm thu giao diện.
+
 
 ## 🌟 Tính Năng Nổi Bật
 

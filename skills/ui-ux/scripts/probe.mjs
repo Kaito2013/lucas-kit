@@ -1789,7 +1789,7 @@ function measureInPage({ minTapSize, isMobile, isSweep = false }) {
 // Vòng focus vẽ trên phần tử và các con (chữ bọc `<span>` mang `group-focus-visible:ring`): outline thấy được,
 // hay bóng dạng vòng `0 0 0 Npx` có màu. Trả chuỗi để so lúc có và không có focus.
 function readFocusRingSignature(probeId) {
-  const element = document.querySelector(`[data-evon-probe-id="${probeId}"]`);
+  const element = document.querySelector(`[data-lucas-probe-id="${probeId}"]`);
   if (!element) return null;
   const isVisibleColor = (color) => Boolean(color) && !/rgba\([^)]*,\s*0\)|\/\s*0\)|transparent/.test(color);
   const nodes = [element, ...element.querySelectorAll("span, div, svg")].slice(0, 20);
@@ -1815,7 +1815,7 @@ function readFocusRingSignature(probeId) {
 // Cả dáng thấy được của phần tử lúc đó: vòng, nền, viền, màu chữ, gạch chân của nó và vài con. Lúc Tab
 // tới mà chuỗi này y như lúc không focus thì Tab tới không thấy gì.
 function readFocusLookSignature(probeId) {
-  const element = document.querySelector(`[data-evon-probe-id="${probeId}"]`);
+  const element = document.querySelector(`[data-lucas-probe-id="${probeId}"]`);
   if (!element) return null;
   const nodes = [element, ...element.querySelectorAll("span, div, svg")].slice(0, 20);
 
@@ -1890,7 +1890,7 @@ async function findDrawnFocusRings(page) {
   // khớp `:focus-visible`), chờ hết chuyển động rồi so lần nữa.
   const confirmedUnmarked = [];
   for (const candidate of drawnRings.length >= 2 ? unmarkedStops : []) {
-    await page.evaluate((probeId) => document.querySelector(`[data-evon-probe-id="${probeId}"]`)?.focus({ focusVisible: true }), candidate.id);
+    await page.evaluate((probeId) => document.querySelector(`[data-lucas-probe-id="${probeId}"]`)?.focus({ focusVisible: true }), candidate.id);
     await page.waitForTimeout(350);
     const settledLook = await page.evaluate(readFocusLookSignature, candidate.id);
     await page.evaluate(() => document.activeElement?.blur());
@@ -2471,7 +2471,7 @@ async function probePopupLayers(page, isMobile) {
   }
   if (dialogTriggerIds.length > 0) {
     await page.evaluate(() => {
-      for (const dialog of document.querySelectorAll("dialog[data-evon-probe-opened]")) if (dialog.open) dialog.close();
+      for (const dialog of document.querySelectorAll("dialog[data-lucas-probe-opened]")) if (dialog.open) dialog.close();
     });
   }
 

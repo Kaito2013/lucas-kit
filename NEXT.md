@@ -260,9 +260,12 @@ Một lượt, không dự án mồi, không đáp án. Test: người dùng t�
    - Card không viền (được có `ring-1 ring-black/5`), rê chuột thì tăng bóng, không phóng to.
 4. Gửi link cho Claude ở evondevKit rà.
 
-### [ ] 6. Dark mode (0/7)
+### [x] 6. Dark mode (7/7)
 
 Chạy trên `~/dev/ui-ux-dashboard`. Danh sách mục ở `TESTS.md`, mục "Dark mode".
+
+Luật đã vào skill 01/10/2026 (`DARKMODE.md` Phần 3, `M21`, `M23`, `M31`–`M33`), nên chạy được.
+Xong 01/10/2026: bật dark mode (nhánh `dark-mode`, cổng 5173), bảng khách hàng, khung app + tổng quan, lớp nổi, form, badge và biểu đồ, màn xác thực. Dự án còn các mục chưa theo kịp ở `REVIEW.md`.
 
 1. Tạo nhánh riêng để bản sáng không bị đụng: `git checkout -b dark-mode`.
 2. Phiên Claude Code mới trong `ui-ux-dashboard`, gõ:
@@ -272,7 +275,10 @@ Chạy trên `~/dev/ui-ux-dashboard`. Danh sách mục ở `TESTS.md`, mục "Da
    ```
 
 3. Soi: nút đổi theme nằm đâu, nói gì; tải lại vẫn nhớ lựa chọn; tải trang ở chế độ tối
-   không nháy trắng.
+   không nháy trắng. Thêm theo luật mới: icon button mở menu ba mục Sáng / Tối / Hệ thống
+   (không xoay vòng); máy đang sáng mà bấm Tối thì cả trang tối, không nửa nọ nửa kia
+   (`@custom-variant dark`); nền rê, mục đang chọn sáng hơn card; dropdown sáng hơn card một
+   bậc, có viền; ô nhập còn viền; không còn mảng `-50` sáng (badge, avatar).
 4. Sáu mục còn lại **không gõ đề mới**. Mỗi mục mở Claude Code ở evondevKit, gõ:
 
    ```
@@ -315,6 +321,39 @@ thường đã test tay thấy đúng nên không chạy đủ.
 Chỉ làm nếu vẫn muốn, sau khi các bước trên ổn. Làm thành **skill thứ hai** (`evon:landing`),
 không gộp vào `ui-ux` vì luật hai bên đá nhau. Cách thêm plugin thứ hai ở cuối `DEVELOP.md`.
 
+**Hướng chốt 01/10/2026:** không cố phủ mọi kiểu SaaS. Nội dung landing page muôn kiểu nhưng
+khung gần như giống nhau, nên skill chốt một bộ section cố định và chọn section theo mục tiêu
+của trang.
+
+1. **Tra trước khi viết luật.** Mở 15–20 landing page SaaS đang chạy thật, đủ bốn mục tiêu ở
+   bước 2. Ghi lại: có section nào, theo thứ tự nào, CTA chính lặp mấy lần, pricing dạng gì.
+   Luật lấy theo cách số đông làm, không viết theo trí nhớ.
+2. **Brief hỏi một câu: khách vào trang cần làm gì?** Bốn mục tiêu:
+   - Đăng ký dùng thử: đủ bộ, pricing nếu có gói trả phí.
+   - Mua luôn: pricing lên sớm, thêm FAQ về thanh toán, hoàn tiền.
+   - Đặt lịch demo: nhiều social proof, không pricing hoặc chỉ ghi "liên hệ".
+   - Vào danh sách chờ: hero, tính năng, CTA. Không pricing, không testimonial.
+
+   Mục tiêu quyết định bật section nào và xếp ra sao, giống "việc chính của từng màn" bên `ui-ux`.
+3. **Bộ section nền (chín loại):** header, hero, social proof (logo, con số, testimonial),
+   tính năng, cách hoạt động, pricing, FAQ, CTA cuối trang, footer. Mỗi loại có 2–3 biến thể,
+   không hơn. Bảng so sánh, video demo, integrations, changelog để bản sau.
+4. **Pricing chỉ ba dạng:** một gói; ba gói nổi gói giữa; ba gói có nút chuyển tháng / năm
+   kèm gói Enterprise "liên hệ". Tính tiền theo mức dùng hay bảng so sánh tính năng dài thì
+   về một bảng thường dưới các card, chưa viết luật riêng.
+5. **Luật chung cho mọi section:**
+   - Một CTA chính, lặp lại dọc trang (hero, giữa trang, cuối trang), cùng chữ cùng đích.
+   - Một màu nhấn.
+   - Nhịp đều giữa các section: khoảng cách dọc theo một thang, không mỗi khối một kiểu.
+   - Chữ ở hero là nội dung thật của sản phẩm: nói làm được gì cho ai. Không câu chung
+     chung kiểu "Build faster with AI".
+   - Ảnh hero là ảnh sản phẩm thật hoặc dựng giống thật, không minh hoạ trừu tượng.
+6. **Quy trình như nhánh U của `ui-ux`:** brief → duyệt → 2–3 wireframe (khác nhau ở thứ tự
+   section và kiểu hero) → chọn → dựng. Dùng lại probe để đo 375 tới 1920px.
+7. **Test ba đề trên dự án trống**, mỗi đề một mục tiêu khác nhau (đăng ký dùng thử, đặt lịch
+   demo, danh sách chờ). Soi: section bật đúng theo mục tiêu, CTA chính thống nhất, hero có
+   chữ thật, pricing đúng một trong ba dạng. Ghi vào `TESTS.md`.
+
 ---
 
 ## Việc lặt vặt, lúc nào rảnh
@@ -335,6 +374,17 @@ Sửa cả bản tiếng Anh.
 
 Xong 30/09/2026: các mục trên đã có trên trang; thêm lối design system (D9), roadmap tiếng Anh 0/2, menu header hiện từ 1280px (bản tiếng Anh gãy chữ ở 1024). Còn tự xác nhận hai chỗ: câu "Không chỉnh tay sau khi dựng" ở showcase có đúng không, và
 đường dẫn cài trên Codex / Antigravity (bước 8).
+
+### [ ] Gỡ card "Thêm ca trước / sau từ dự án thật" trên landing page
+
+Chốt 01/10/2026: bỏ card "Sắp có" ở roadmap. Card chỉ báo là chưa có ("Đã có 1 dự án",
+ngay dưới ca 68Lane), lại hứa "kèm số đo code trước và sau" thì ca nào cũng phải đo. Bro tự
+sửa ở `~/dev/evondev-kit-landingpage`, gỡ cả bản tiếng Anh và đếm lại số mục roadmap.
+
+Không lên kế hoạch làm thêm ca. Sau này tình cờ có ca đẹp thì đưa thẳng lên cạnh 68Lane, không
+báo "sắp có". Ca đó phải là dự án đang chạy thật (không lấy đề ở `audit-skills`), hai ảnh cùng route, cùng dữ liệu, cùng
+bề rộng, ghi câu đề và chỗ đã chỉnh tay; ca của người khác thì xin phép và che dữ liệu thật.
+Hiện bằng hai tab Trước / Sau, không làm thanh kéo vì dễ đụng cuộn trang trên điện thoại.
 
 ### [x] Thêm file `LICENSE`
 

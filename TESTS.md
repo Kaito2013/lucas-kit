@@ -160,25 +160,28 @@ cho tới khi ổn. Mỗi mục chụp cả sáng lẫn tối ở 375 và 1280px
 
 Mỗi mục kiểm:
 
-- Thang bề mặt `nút phụ → nền trang → card` giữ đúng thứ tự ở cả hai theme (`M21`).
+- Nền tối: nền trang < card < lớp nổi sáng dần; nút phụ, mục đang chọn, nền rê là trắng phủ mờ, sáng hơn card, đang chọn đậm hơn rê một bậc (`M21`, viết lại 01/10/2026).
 - Màu nhấn gần trắng chỉ làm nền, đường mảnh (viền focus, gạch chân tab, chỉ báo đang
   chọn) hạ độ đục (`M22`).
 - Không còn mảng trắng cứng (`bg-white`, `#fff`, nền `-50` của màu trạng thái), chữ đen
-  trên nền tối, viền biến mất, bóng làm việc mà viền phải làm (`M23`).
+  trên nền tối, viền biến mất, ô nhập mất viền, nút chính rê vào thành trắng tuyệt đối (`M23`, `M32`).
+- Probe `--dark` mục "DARK MODE" rỗng.
 - Nền hover so với nền card và nền trang tối vẫn thấy, không khuyết mảng (`REVIEW.md` bước 4).
 - Chữ phụ, placeholder, chữ trạng thái đạt 4,5:1 trên nền tối; viền và vòng focus đạt 3:1.
 
 Chốt xong thì ghi ngược vào skill như bậc 1: token vào `tokens.css`, luật chung vào
-`rules-color.md` (`M20`–`M23`), chỗ riêng của component vào file `components/` của nó.
+`rules-color.md` (`M20`–`M23`, `M31`–`M33`), chỗ riêng của component vào file `components/` của nó.
 
-- [ ] **Bật dark mode** — "Thêm dark mode cho app, có nút đổi sáng / tối trên header, mặc định theo hệ điều hành."
+- ✅ **Bật dark mode** — "Thêm dark mode cho app, có nút đổi sáng / tối trên header, mặc định theo hệ điều hành."
       Kiểm thêm: nút đổi theme nằm đâu và nói gì, lựa chọn được nhớ sau khi tải lại, tải trang ở chế độ tối không nháy trắng.
-- [ ] **Khung app + tổng quan** — sidebar, header, card số liệu, biểu đồ (`/dashboard`).
-- [ ] **Bảng** — bảng khách hàng: dòng hover, dòng đang chọn, cột ghim, chip lọc, tab trạng thái (`/dashboard/customers`).
-- [ ] **Lớp nổi** — modal, hộp xác nhận xoá, drawer, dropdown, popover lọc, toast, tooltip: lớp nổi phải tách khỏi nền tối bằng viền, không nhờ bóng.
-- [ ] **Form** — ô nhập thường / lỗi / khoá / focus, select, date picker, checkbox, công tắc, alert (`/dashboard/tasks/new`).
-- [ ] **Badge và biểu đồ** — badge trạng thái, thanh tiến độ, bốn loại biểu đồ: màu mang nghĩa vẫn phân biệt được, nền badge không thành khối sáng.
-- [ ] **Màn xác thực** — đăng nhập, OTP (`/login`, `/verify-otp`): màn không có khung app bọc ngoài, card nằm thẳng trên nền trang tối.
+      01/10/2026: icon button trên header mở menu Sáng / Tối / Theo hệ thống có ✓ (`M31`); script đầu `<head>` gắn `.dark`
+      trước khi vẽ; chọn Tối trên máy sáng thì cả trang lật kể cả `dark:` và `color-scheme`; tải lại vẫn nhớ; lật tắt transition.
+- ✅ **Khung app + tổng quan** — sidebar, header, card số liệu, biểu đồ (`/dashboard`). 01/10/2026: cột biểu đồ màu nhấn 100% chói nhất màn, thêm `--chart-fill` (70% ở nền tối, chủ dự án chọn).
+- ✅ **Bảng** (01/10/2026: probe tối không mảng sáng, ô nhập còn viền; lỗi skill nút chính rê ra `#ffffff`, đã sửa) — bảng khách hàng: dòng hover, dòng đang chọn, cột ghim, chip lọc, tab trạng thái (`/dashboard/customers`).
+- ✅ **Lớp nổi** — modal, hộp xác nhận xoá, drawer, dropdown, popover lọc, toast, tooltip: lớp nổi phải tách khỏi nền tối bằng viền, không nhờ bóng. 01/10/2026 (`/components`): khung đúng `--surface-overlay` + viền + bóng, tooltip đảo màu; sửa skill: nền rê `secondary` tối, lớp phủ `bg-black`, mục trỏ viết bằng điều kiện JS.
+- ✅ **Form** — ô nhập thường / lỗi / khoá / focus, select, date picker, checkbox, công tắc, alert (`/dashboard/tasks/new`). 01/10/2026: đúng cả với màu nhấn xanh (sáng lên `#7ca6ed`, chữ nút đảo tối, viền focus 3.37:1); sửa skill: vệt khung chờ `bg-foreground/5`.
+- ✅ **Badge và biểu đồ** — badge trạng thái, thanh tiến độ, bốn loại biểu đồ: màu mang nghĩa vẫn phân biệt được, nền badge không thành khối sáng. 01/10/2026: badge, avatar, cột nhóm, sparkline, đường đều ổn; sửa skill: rãnh thanh tiến độ và dải khoảng ngày thôi tô `bg-background`. Bậc `/15` mờ ở cả hai bản (1.23 / 1.17:1), đánh đổi đã ghi trong `charts.md`, không đổi.
+- ✅ **Màn xác thực** — đăng nhập, OTP (`/login`, `/verify-otp`): màn không có khung app bọc ngoài, card nằm thẳng trên nền trang tối. 01/10/2026: probe sạch, ô nhập và ô OTP có viền; card một mình giữ không viền (`M29`, đã thử viền và bóng).
 
 ## Vòng tiếng Anh
 

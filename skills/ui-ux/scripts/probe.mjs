@@ -639,6 +639,40 @@ function measureInPage({ minTapSize, isMobile, isSweep = false }) {
     }
   }
 
+  // 6b. Chữ đơn côi ở dòng cuối (`T10`): khối chữ hai, ba dòng mà dòng cuối chỉ còn một chữ ("CRM", "mới").
+  //     Chỉ xét khối chữ lá (không có thẻ con), chưa `text-pretty` / `text-balance`, không bị `line-clamp` cắt.
+  //     Đã dính 01/10/2026: bảng công việc ở 375px, tên việc `line-clamp-2` theo spec danh sách dòng mà spec quên
+  //     `text-pretty`, 6/11 tên trơ một chữ ở dòng hai.
+  const orphanWords = [];
+  for (const block of document.querySelectorAll("p, h1, h2, h3, h4, h5, li, span, a, label, dd, dt, td")) {
+    if (orphanWords.length >= 10 || block.children.length > 0 || !isVisible(block)) continue;
+    const text = block.textContent.replace(/\s+/g, " ").trim();
+    const lastSpace = text.lastIndexOf(" ");
+    if (text.length < 12 || lastSpace < 0) continue;
+    const style = getComputedStyle(block);
+    if (/pretty|balance/.test(`${style.textWrapStyle || ""} ${style.textWrap || ""}`) || style.whiteSpace === "nowrap") continue;
+    if (block.scrollHeight > block.clientHeight + 1 && style.overflow !== "visible") continue;
+    const textNode = block.firstChild;
+    if (!textNode || textNode.nodeType !== Node.TEXT_NODE) continue;
+    const range = document.createRange();
+    range.selectNodeContents(textNode);
+    const lineTops = new Set([...range.getClientRects()].filter((rect) => rect.width > 2).map((rect) => Math.round(rect.top / 4)));
+    if (lineTops.size < 2 || lineTops.size > 3) continue;
+    const rawText = textNode.data;
+    const rawLastSpace = rawText.trimEnd().lastIndexOf(" ");
+    const wordRange = document.createRange();
+    wordRange.setStart(textNode, rawLastSpace + 1);
+    wordRange.setEnd(textNode, rawText.trimEnd().length);
+    const beforeRange = document.createRange();
+    beforeRange.setStart(textNode, Math.max(0, rawLastSpace - 1));
+    beforeRange.setEnd(textNode, rawLastSpace);
+    const wordRect = wordRange.getBoundingClientRect();
+    const beforeRect = beforeRange.getBoundingClientRect();
+    if (wordRect.width && beforeRect.width && wordRect.top >= beforeRect.bottom - 2 && wordRect.width < block.getBoundingClientRect().width * 0.25) {
+      orphanWords.push(`"${text.slice(0, 40)}${text.length > 40 ? "…" : ""}" trơ "${text.slice(lastSpace + 1)}" ở dòng cuối: ${describe(block)}`);
+    }
+  }
+
   // 7. Ô nhập lệch mép với nút rộng hết khung trong cùng form / hộp thoại: màn hẹp nút xếp dọc
   //    rộng hết, còn ô nằm trong cột chữ thụt sau icon (hộp xác nhận có ô gõ lại tên: ô 239px ở
   //    x=96, nút 295px ở x=40, đo 26/09/2026). Nút tự co theo chữ (màn rộng) thì không so.
@@ -882,13 +916,24 @@ function measureInPage({ minTapSize, isMobile, isSweep = false }) {
     const tops = new Set();
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-      if (!node.textContent.trim()) continue;
+      if (!node.textContent.trim() || isScreenReaderOnly(node.parentElement, element)) continue;
       const range = document.createRange();
       range.selectNodeContents(node);
       for (const rect of range.getClientRects()) if (rect.width > 2 && rect.height > 6) tops.add(Math.round(rect.top / 4));
     }
 
     return tops.size;
+  }
+
+  // Chữ `sr-only` (khung 1px, overflow hidden) không phải một dòng nhìn thấy: tên người cạnh avatar ẩn ở
+  // khung vừa nằm lệch tâm avatar, đếm vào thì ra hai dòng (báo nhầm 01/10/2026, cột Phụ trách ở 768px).
+  function isScreenReaderOnly(node, root) {
+    for (let current = node; current && current !== root.parentElement; current = current.parentElement) {
+      const box = current.getBoundingClientRect();
+      if (box.width <= 1 && box.height <= 1 && getComputedStyle(current).overflow !== "visible") return true;
+    }
+
+    return false;
   }
 
   // 11b. Cột chữ của bảng bị ép xuống dòng trong khi bảng không cuộn: các cột khác `nowrap` giữ chỗ, cột
@@ -1333,7 +1378,14 @@ function measureInPage({ minTapSize, isMobile, isSweep = false }) {
     const heights = actions.map((action) => Math.round(action.getBoundingClientRect().height));
     const fontSizes = new Set(actions.map((action) => getComputedStyle(action).fontSize));
     const isFullRadius = (action) => parseFloat(getComputedStyle(action).borderTopLeftRadius) >= action.getBoundingClientRect().height / 2;
-    const shapeCount = new Set(actions.map(isFullRadius)).size;
+    // Nút avatar (vuông, bo tròn hẳn, chỉ ảnh hoặc 1–2 chữ cái) tròn cạnh nút icon bo góc là quy ước chung, không
+    // tính vào phép so hình (báo nhầm 01/10/2026, header khung app: trăng, chuông, avatar "T").
+    const isAvatarAction = (action) => {
+      const actionRect = action.getBoundingClientRect();
+
+      return isFullRadius(action) && Math.abs(actionRect.width - actionRect.height) <= 2 && (Boolean(action.querySelector("img")) || action.textContent.trim().length <= 2);
+    };
+    const shapeCount = new Set(actions.filter((action) => !isAvatarAction(action)).map(isFullRadius)).size;
     const heightSpread = Math.max(...heights) - Math.min(...heights);
     // Khoảng giữa hai nút kề nhau: dưới 6px thì nền rê dính nhau, hàng thành một cục (gap-2, 30/09/2026).
     const sortedActions = [...actions].sort((first, second) => first.getBoundingClientRect().left - second.getBoundingClientRect().left);
@@ -1721,6 +1773,7 @@ function measureInPage({ minTapSize, isMobile, isSweep = false }) {
   }
 
   return {
+    orphanWords,
     invisibleFrames,
     mismatchedRadii,
     browserDefaultControls,
@@ -1983,11 +2036,16 @@ function readHoverState(probeId) {
     // `bg-muted`). Mục đang chọn thì bỏ qua: rê cùng nền đang chọn là đúng.
     // `dark:hover:bg-` chỉ chạy khi trang đang tối: ô Select của shadcn chỉ khai nền rê cho dark, ở light rê
     // không đổi là đúng mẫu (luật khoá 6, báo nhầm 30/09/2026, lịch khám: mọi Select lên danh sách P).
-    declaresHoverFill: (element.getAttribute("class") || "").split(/\s+/).some((token) => {
+    // `hover:bg-surface` (hay `disabled:hover:bg-surface`) cạnh `bg-surface` là cố ý giữ nền lúc thường, tắt nền
+    // rê kế thừa từ variant (nút lọc dạng dropdown không hover, chủ dự án chốt, `components/choice-controls.md`),
+    // không phải khai nền rê (báo nhầm 01/10/2026,
+    // nút Lọc ở bảng công việc tối).
+    declaresHoverFill: (element.getAttribute("class") || "").split(/\s+/).some((token, index, tokens) => {
       const variants = token.split(":");
       const utility = variants.pop();
+      const isCancellingInheritedHover = tokens.includes(utility);
 
-      return variants.includes("hover") && /^bg-(?!transparent)/.test(utility) && (!variants.includes("dark") || document.documentElement.classList.contains("dark"));
+      return variants.includes("hover") && /^bg-(?!transparent)/.test(utility) && !isCancellingInheritedHover && (!variants.includes("dark") || document.documentElement.classList.contains("dark"));
     }),
     isSelected: element.matches("[aria-current]:not([aria-current='false']), [aria-selected='true'], [aria-pressed='true'], [data-state='active'], [data-state='on'], [data-state='checked']"),
     touchesCardEdge: behind.node !== document.documentElement && (Math.abs(rect.left - cardRect.left) <= 1 || Math.abs(rect.right - cardRect.right) <= 1),
@@ -2360,8 +2418,9 @@ function findPopupDetails(freezeCss) {
   return { motionless, scrollyLayers };
 }
 
-async function probePopupLayers(page, isMobile) {
+async function probePopupLayers(page, isMobile, isDark = false) {
   const overflowingLayers = new Set();
+  const sunkenSelections = new Set();
   const hollowLayers = new Set();
   const checkedHoverChanges = new Set();
   const heavyLayerLines = new Set();
@@ -2429,6 +2488,8 @@ async function probePopupLayers(page, isMobile) {
     // Ô chọn trong lớp nổi (bộ lọc dạng popover) chỉ hiện lúc mở, nên đo rê vào ô đã chọn ở đây nữa.
     if (!isTap && !isMobile) for (const change of await findCheckedHoverChanges(page)) checkedHoverChanges.add(change);
     if (!isTap) for (const line of await page.evaluate(findHeavyLayerLines)) heavyLayerLines.add(line);
+    // Lớp nổi vừa mở thường tô sẵn mục đầu (đang trỏ): đo mục đó có khoét lỗ ở nền tối không.
+    if (!isTap && isDark) for (const line of await page.evaluate(findSunkenSelections)) sunkenSelections.add(line);
     if (!isTap) {
       const details = await page.evaluate(findPopupDetails, freezeMotionCss);
       for (const layer of details.motionless) motionlessLayers.add(layer);
@@ -2456,7 +2517,11 @@ async function probePopupLayers(page, isMobile) {
         if (!pick) return null;
         pick.click();
 
-        return { label: `${trigger.tagName.toLowerCase()} "${(trigger.textContent || "").trim().slice(0, 30)}"`, iconCount: trigger.querySelectorAll("svg").length };
+        // Ô trống `—` của bảng có icon `calendar-plus` + "Đặt hạn" chỉ cho lúc trống (`layouts/app.md`, "Ô trống
+        // một kiểu"): có ngày rồi thì hết icon là đúng mẫu (báo nhầm 01/10/2026, cột hạn chót bảng công việc).
+        const isEmptyCellTrigger = (trigger.textContent || "").trim().startsWith("—");
+
+        return { label: `${trigger.tagName.toLowerCase()} "${(trigger.textContent || "").trim().slice(0, 30)}"`, iconCount: isEmptyCellTrigger ? 0 : trigger.querySelectorAll("svg").length };
       }, triggerId);
       if (pickedTrigger) {
         await page.waitForTimeout(250);
@@ -2484,6 +2549,7 @@ async function probePopupLayers(page, isMobile) {
     nativeChoices: [...nativeChoices],
     scrollyLayers: [...scrollyLayers],
     lostTriggerIcons: [...lostTriggerIcons],
+    sunkenSelections: [...sunkenSelections],
   };
 }
 
@@ -2819,6 +2885,9 @@ async function probeWidth(browser, options, width) {
 
   const screenshotPath = join(options.out, `${width}${options.isDark ? "-dark" : ""}.png`);
   await takeFullScreenshot(page, screenshotPath);
+  // Đo dark mode ngay sau khi chụp, lúc trang còn đúng như ảnh: các bước rê, bấm, mở lớp nổi bên dưới
+  // có thể đổi trang (đã dính 01/10/2026: tới lượt đo thì biểu đồ tổng quan còn 2/10 khối màu nhấn).
+  const darkModeProblemSet = new Set(options.isDark ? [...(await page.evaluate(findDarkModeProblems)), ...(await page.evaluate(findSunkenSelections)), ...(await page.evaluate(findHueDrifts))] : []);
 
   const { drawnRings: drawnFocusRings, unmarkedFocusStops } = isMobile ? { drawnRings: [], unmarkedFocusStops: [] } : await findDrawnFocusRings(page);
 
@@ -2826,10 +2895,14 @@ async function probeWidth(browser, options, width) {
   // tooltip tên tệp tràn màn chỉ lộ khi khối đã mở (27/09/2026).
   const expandedCount = await expandCollapsedBlocks(page);
   const allMeasurements = expandedCount > 0 ? mergeMeasurements(measurements, await page.evaluate(measureInPage, { minTapSize, isMobile })) : measurements;
+  // Khối vừa mở có thể chứa bản mẫu lớp nổi (hộp xác nhận bày tĩnh có lớp phủ): đo dark mode thêm một lần.
+  if (options.isDark && expandedCount > 0) for (const line of [...(await page.evaluate(findDarkModeProblems)), ...(await page.evaluate(findSunkenSelections))]) darkModeProblemSet.add(line);
 
   // Màn chạm không có rê chuột: chỉ đo nền rê ở khổ desktop.
   const hoverStates = isMobile ? { layoutShifts: [], vanishedChildren: [], weakHovers: [], blendedHovers: [], borderHovers: [], overflowingLayers: [] } : await probeHoverStates(page);
-  const popupLayers = await probePopupLayers(page, isMobile);
+  const popupLayers = await probePopupLayers(page, isMobile, options.isDark);
+  for (const line of popupLayers.sunkenSelections) darkModeProblemSet.add(line);
+  const darkModeProblems = [...darkModeProblemSet];
   const heavyDecorativeBorders = options.isDark ? [] : await page.evaluate(findHeavyDecorativeBorders);
   const scrollbarStyles = await page.evaluate(findScrollbarStyles);
   const heavyNavLinks = await page.evaluate(findHeavyNavLinks);
@@ -2875,6 +2948,7 @@ async function probeWidth(browser, options, width) {
     heavyNavLinks,
     brokenImages,
     misformattedNumbers,
+    darkModeProblems,
     stuckStates: stateShapes.stuckStates,
     stateGroupCount: stateShapes.groupCount,
   };
@@ -2927,6 +3001,230 @@ function findHeavyDecorativeBorders() {
   }
 
   return [...findings.values()];
+}
+
+// Mục đang chọn / đang trỏ tô đúng nền trang (`isHighlighted && "bg-background"`, `aria-current` + `bg-background`)
+// mà khung chứa nó sáng hơn: ở nền tối nền trang tối hơn card và lớp nổi, mục chọn thành lỗ khoét (M21). Class
+// viết trong điều kiện JS nên không grep được `hover:bg-background`; đo màu. Đã dính 01/10/2026, ô chọn và bảng
+// lệnh ở /components. Chỉ gọi ở nền tối: nền sáng thì nền trang tối hơn card là đúng chiều.
+function findSunkenSelections() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  const readHex = (cssColor) => {
+    context.clearRect(0, 0, 1, 1);
+    context.fillStyle = "rgba(0,0,0,0)";
+    context.fillStyle = cssColor;
+    context.fillRect(0, 0, 1, 1);
+    const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
+
+    return alpha < 240 ? null : `#${[red, green, blue].map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+  };
+  const pageHex = readHex(getComputedStyle(document.documentElement).getPropertyValue("--background").trim());
+  if (!pageHex) return [];
+  const findings = new Set();
+  // Thêm vệt khung chờ `animate-pulse`: mẫu cũ tô `bg-background`, ở nền tối thành dãy lỗ đen (01/10/2026).
+  const selector = "[role=option], [role=menuitem], [role=menuitemradio], [role=tab], [aria-selected=true], [aria-current]:not([aria-current=false]), [data-highlighted], [data-selected=true], .animate-pulse, [role=progressbar]";
+  // Rãnh không có role (hay gặp: `div.h-2.rounded-full` bọc một thanh tô màu): nhận theo hình. Thấp 2–12px, bo
+  // tròn đầu, rộng ≥ 60px, có con tô màu khác. Đã dính 01/10/2026, "Doanh thu theo kênh" ở /dashboard/revenue.
+  const shapedTracks = [...document.querySelectorAll("div, span")].filter((element) => {
+    const rect = element.getBoundingClientRect();
+    if (rect.height < 2 || rect.height > 12 || rect.width < 60) return false;
+    if (parseFloat(getComputedStyle(element).borderTopLeftRadius) < rect.height / 2 - 0.5) return false;
+    const fill = element.firstElementChild;
+
+    return Boolean(fill) && readHex(getComputedStyle(fill).backgroundColor) !== null && fill.getBoundingClientRect().width < rect.width;
+  });
+  for (const element of shapedTracks) element.dataset.evonTrack = "1";
+  for (const element of document.querySelectorAll(`${selector}, [data-evon-track]`)) {
+    if (findings.size >= 3) break;
+    const rect = element.getBoundingClientRect();
+    // Rãnh `h-1`, `h-2` và vệt chờ `h-3` thấp hơn mục chọn: hạ ngưỡng cao riêng cho hai loại đó.
+    const minHeight = element.matches(".animate-pulse, [role=progressbar], [data-evon-track]") ? 2 : 16;
+    if (rect.width < 24 || rect.height < minHeight || readHex(getComputedStyle(element).backgroundColor) !== pageHex) continue;
+    let ancestor = element.parentElement;
+    let ancestorHex = null;
+    while (ancestor && !ancestorHex) {
+      ancestorHex = readHex(getComputedStyle(ancestor).backgroundColor);
+      ancestor = ancestor.parentElement;
+    }
+    if (!ancestorHex || ancestorHex === pageHex) continue;
+    const label = (element.textContent || element.getAttribute("aria-label") || "").trim().replace(/\s+/g, " ").slice(0, 30);
+    const isSkeleton = element.classList.contains("animate-pulse");
+    const isTrack = element.getAttribute("role") === "progressbar" || element.dataset.evonTrack === "1";
+    findings.add(isSkeleton || isTrack
+      ? `${isTrack ? "rãnh thanh tiến độ" : "vệt khung chờ"} tô nền trang ${pageHex}, tối hơn khung ${ancestorHex}, thành vệt đen: dùng bg-foreground/5 (M21${isTrack ? ", components/charts.md" : ", components/empty-state.md"})`
+      : `mục đang chọn / đang trỏ tô nền trang ${pageHex}, tối hơn khung ${ancestorHex}, như lỗ khoét: dùng --item-hover (trỏ, rê) hoặc --secondary (đang chọn) (M21): ${element.getAttribute("role") || element.tagName.toLowerCase()} "${label}"`);
+  }
+
+  return [...findings];
+}
+
+// Cùng một chữ có màu mà sắc hai theme lệch nhau (M7, "Bản tối chọn theo sắc"): amber-700 cam ở bản sáng, amber-400
+// vàng ở bản tối, đọc ra hai màu (chủ dự án thấy 01/10/2026, bảng công việc). Đang tối thì gỡ `.dark` một nhịp, đọc
+// lại màu chữ rồi gắn lại; chuyển động đã tắt nên màu đổi ngay. So sắc OKLCH, chỉ chữ đủ đậm sắc (chroma > 0.08).
+function findHueDrifts() {
+  const root = document.documentElement;
+  if (!root.classList.contains("dark")) return [];
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  const toOklch = (cssColor) => {
+    context.clearRect(0, 0, 1, 1);
+    context.fillStyle = "rgba(0,0,0,0)";
+    context.fillStyle = cssColor;
+    context.fillRect(0, 0, 1, 1);
+    const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
+    if (alpha < 200) return null;
+    const [linearRed, linearGreen, linearBlue] = [red, green, blue].map((channel) => {
+      const value = channel / 255;
+
+      return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    });
+    const long = Math.cbrt(0.4122214708 * linearRed + 0.5363325363 * linearGreen + 0.0514459929 * linearBlue);
+    const medium = Math.cbrt(0.2119034982 * linearRed + 0.6806995451 * linearGreen + 0.1073969566 * linearBlue);
+    const short = Math.cbrt(0.0883024619 * linearRed + 0.2817188376 * linearGreen + 0.6299787005 * linearBlue);
+    const axisA = 1.9779984951 * long - 2.428592205 * medium + 0.4505937099 * short;
+    const axisB = 0.0259040371 * long + 0.7827717662 * medium - 0.808477439 * short;
+    const hex = `#${[red, green, blue].map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+
+    return { chroma: Math.hypot(axisA, axisB), hue: ((Math.atan2(axisB, axisA) * 180) / Math.PI + 360) % 360, hex };
+  };
+  const texts = [...document.querySelectorAll("body *")]
+    .filter((element) => element.children.length === 0 && (element.textContent || "").trim() && element.getBoundingClientRect().width > 0)
+    .slice(0, 600);
+  const darkColors = texts.map((element) => toOklch(getComputedStyle(element).color));
+  root.classList.remove("dark");
+  const lightColors = texts.map((element) => toOklch(getComputedStyle(element).color));
+  root.classList.add("dark");
+  const findings = new Map();
+  texts.forEach((element, index) => {
+    const dark = darkColors[index];
+    const light = lightColors[index];
+    if (!dark || !light || dark.chroma < 0.08 || light.chroma < 0.08) return;
+    const drift = Math.min(Math.abs(dark.hue - light.hue), 360 - Math.abs(dark.hue - light.hue));
+    const key = `${light.hex}→${dark.hex}`;
+    // 20°: sky-700 → sky-300 của avatar lệch 12° ở thang gốc, đo qua hex ra 16°, mắt vẫn đọc là một màu.
+    if (drift <= 20 || findings.has(key) || findings.size >= 4) return;
+    findings.set(key, `chữ màu đổi sắc giữa hai theme: sáng ${light.hex} (${Math.round(light.hue)}°) → tối ${dark.hex} (${Math.round(dark.hue)}°), lệch ${Math.round(drift)}°, đọc ra hai màu; chọn bậc tối theo sắc, ví dụ amber-700 → orange-400 (M7): "${element.textContent.trim().slice(0, 30)}"`);
+  });
+
+  return [...findings.values()];
+}
+
+// Chỉ chạy với `--dark` (M21, M31, M32, V4). Bốn kiểu lỗi chỉ người bật tối mới thấy:
+// - trang vẫn sáng: dark mode chỉ có khai báo, hoặc `dark:` chạy theo máy mà token theo class;
+// - mảng nền sáng giữa màn tối: badge, avatar, banner `-50`/`-100`, toast của thư viện chưa đọc token;
+// - ô nhập không viền: `dark:border-transparent`, chỉ còn nền mờ báo vùng gõ;
+// - nền rê `bg-background`: ở nền tối nền trang tối hơn card, rê vào chìm xuống gần như không thấy.
+// Thêm `color-scheme` không phải dark: thanh cuộn gốc, ô ngày, autofill vẫn vẽ bản sáng.
+// Màu nhấn, chữ chính (nút chính, tooltip đảo màu) được phép sáng, không tính.
+function findDarkModeProblems() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  const readRgba = (cssColor) => {
+    if (!cssColor) return null;
+    context.clearRect(0, 0, 1, 1);
+    context.fillStyle = "rgba(0,0,0,0)";
+    context.fillStyle = cssColor;
+    context.fillRect(0, 0, 1, 1);
+    const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
+
+    return { red, green, blue, alpha: alpha / 255 };
+  };
+  const readLuminance = ({ red, green, blue }) => {
+    const toLinear = (channel) => {
+      const value = channel / 255;
+
+      return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    };
+
+    return 0.2126 * toLinear(red) + 0.7152 * toLinear(green) + 0.0722 * toLinear(blue);
+  };
+  const toHex = ({ red, green, blue }) => `#${[red, green, blue].map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+  const describe = (element) => {
+    const classNames = String(element.className?.baseVal ?? element.className ?? "").trim().split(/\s+/).filter(Boolean).slice(0, 4);
+    const text = (element.textContent || "").trim().replace(/\s+/g, " ").slice(0, 30);
+
+    return `${element.tagName.toLowerCase()}${classNames.length > 0 ? `.${classNames.join(".")}` : ""}${text ? ` "${text}"` : ""}`;
+  };
+  const findings = [];
+
+  const pageBackground = [document.body, document.documentElement]
+    .map((element) => readRgba(getComputedStyle(element).backgroundColor))
+    .find((color) => color && color.alpha > 0.5);
+  if (!pageBackground || readLuminance(pageBackground) > 0.4) {
+    return [`trang không tối khi bật --dark (nền ${pageBackground ? toHex(pageBackground) : "trong suốt, tức trắng"}): dark mode chỉ có khai báo, coi như chưa có, bỏ lượt tối (V4). Dự án tự dựng dark mode mà ra dòng này thì token không lật theo class \`dark\` trên <html>`];
+  }
+
+  const colorScheme = getComputedStyle(document.documentElement).colorScheme;
+  if (!/dark/.test(colorScheme)) findings.push(`color-scheme của <html> là "${colorScheme}", không phải dark: thanh cuộn gốc, ô ngày, autofill, <select> vẫn vẽ bản sáng (M31)`);
+
+  const rootStyle = getComputedStyle(document.documentElement);
+  // Nền rê nút chính trắng tuyệt đối: khối chói nhất màn tối (M23, đã dính 01/10/2026, ui-ux-dashboard).
+  const primaryHover = readRgba(rootStyle.getPropertyValue("--primary-hover").trim());
+  if (primaryHover && primaryHover.alpha > 0.5 && readLuminance(primaryHover) > 0.95) {
+    findings.push(`--primary-hover là ${toHex(primaryHover)}, nút chính rê vào thành khối trắng tuyệt đối: lệch về phía nền một bậc, ví dụ #cfd5e0 (M23)`);
+  }
+  const allowedBrights = ["--primary", "--primary-hover", "--foreground"]
+    .map((name) => readRgba(rootStyle.getPropertyValue(name).trim()))
+    .filter(Boolean)
+    .map(toHex);
+  const brightColors = new Map();
+  const primaryHex = allowedBrights[0];
+  const solidAccentBars = [];
+  let borderlessFieldCount = 0;
+  let sunkenHoverCount = 0;
+
+  for (const element of document.querySelectorAll("body *")) {
+    if (element.closest(".force-light, [data-demo-state]")) continue;
+    if (element.matches("img, video, canvas, svg, svg *, picture, iframe")) continue;
+    const rect = element.getBoundingClientRect();
+    if (rect.width < 12 || rect.height < 12) continue;
+    const style = getComputedStyle(element);
+    if (style.visibility === "hidden" || style.display === "none" || Number(style.opacity) === 0) continue;
+
+    const className = String(element.className?.baseVal ?? element.className ?? "");
+    if (sunkenHoverCount < 3 && /(^|\s)(hover|focus-visible|data-\[highlighted\]|data-\[selected=true\]):bg-background(\s|$)/.test(className)) {
+      sunkenHoverCount += 1;
+      findings.push(`nền rê \`bg-background\` chìm xuống, ở nền tối gần như không thấy, dùng \`bg-item-hover\` (M21, I10): ${describe(element)}`);
+    }
+
+    const background = readRgba(style.backgroundColor);
+    // Cột biểu đồ màu nhấn 100%: cao hơn nút (≥ 48px), hẹp như cột. Nút chính cao 40px nên không tính.
+    if (background && background.alpha > 0.95 && toHex(background) === primaryHex && rect.height >= 48 && rect.width <= 64) solidAccentBars.push(element);
+    // Lớp phủ sáng mờ phủ vùng lớn: `bg-foreground/40` sau modal, ở nền tối foreground gần trắng nên thành màn
+    // sương sáng (đã dính 01/10/2026, bản mẫu hộp xác nhận ở /components). Lớp phủ phải là `bg-black/…` (M32).
+    if (background && background.alpha >= 0.2 && background.alpha < 0.5 && readLuminance(background) > 0.6 && rect.width >= 300 && rect.height >= 150 && findings.length < 8) {
+      findings.push(`lớp phủ sáng mờ ${toHex(background)} ${Math.round(background.alpha * 100)}% phủ ${Math.round(rect.width)}×${Math.round(rect.height)}px: lớp phủ sau modal, panel phải là bg-black/…, không bg-foreground/… (M32): ${describe(element)}`);
+    }
+    if (background && background.alpha >= 0.5 && readLuminance(background) > 0.6) {
+      const hex = toHex(background);
+      if (!allowedBrights.includes(hex) && !brightColors.has(hex) && brightColors.size < 5) {
+        brightColors.set(hex, `mảng nền sáng ${hex} giữa màn tối, ${Math.round(rect.width)}×${Math.round(rect.height)}px (M32): ${describe(element)}`);
+      }
+    }
+
+    if (borderlessFieldCount < 3 && element.matches("input:not([type='checkbox']):not([type='radio']):not([type='hidden']):not([type='range']):not([type='file']):not([type='color']), textarea, select") && rect.width >= 60) {
+      const border = readRgba(style.borderBottomColor);
+      const hasBorder = parseFloat(style.borderBottomWidth) > 0 && border && border.alpha > 0.02;
+      if (!hasBorder && background && background.alpha > 0) {
+        borderlessFieldCount += 1;
+        findings.push(`ô nhập không viền ở nền tối, chỉ còn nền mờ báo vùng gõ: giữ viền --border-strong (M32): ${describe(element)}`);
+      }
+    }
+  }
+
+  // Đã dính 01/10/2026, "Việc xong mỗi tuần" ở ui-ux-dashboard: bảy cột trắng đặc là khối chói nhất màn.
+  if (solidAccentBars.length >= 3) {
+    findings.push(`${solidAccentBars.length} cột biểu đồ tô màu nhấn 100% (gần trắng), chói nhất màn tối: dùng --chart-fill, nền tối 70% (M32, components/charts.md): ${describe(solidAccentBars[0])}`);
+  }
+
+  return [...brightColors.values(), ...findings];
 }
 
 // Mục điều hướng dọc (sidebar) chữ đậm: mẫu của skill là chữ thường 400 cho mục thường, chỉ mục đang chọn
@@ -3277,6 +3575,9 @@ function listMustReportItems(results, sweepSteps) {
     for (const item of result.weakHovers || []) addItem(width, `nền rê gần như không thấy (soi: Gu): ${item}`);
     // Nút viền rê thành nút đặc cùng màu viền là kiểu hay gặp, không vỡ gì: giữ ở Gu.
     for (const item of (result.blendedHovers || []).filter((line) => !line.includes("trùng màu viền"))) addItem(width, `nền rê tan vào nền khác (soi: Gu): ${item}`);
+    // Dark mode làm dở là Hỏng (V4): mảng sáng giữa màn tối. Trang không lật thì dark mode chỉ có khai
+    // báo, V4 bảo bỏ lượt tối chứ không báo lỗi, nên không vào đây.
+    for (const item of (result.darkModeProblems || []).filter((line) => /^(mảng nền sáng|lớp phủ sáng mờ)/.test(line))) addItem(width, `dark mode làm dở: ${item.replace(/, \d+×\d+px/, "")}`);
     for (const item of result.untransitionedMotion || []) addItem(width, `scale / translate / rotate không chạy chuyển động: ${item}`);
     for (const item of result.smallTapTargets.filter((target) => target.isBelowFloor)) addItem(width, `chỗ bấm dưới 24px: ${item.element}`);
   }
@@ -3406,6 +3707,10 @@ function formatReport(results) {
       problems.push(`DẤU CÂU RƠI XUỐNG ĐẦU DÒNG (${result.orphanPunctuation.length} chỗ, dấu phải dính chữ đứng trước):`);
       for (const item of result.orphanPunctuation.slice(0, 5)) problems.push(`  dòng mở đầu "${item.lineStart}": ${item.element}`);
     }
+    if (result.orphanWords?.length > 0) {
+      problems.push(`CHỮ ĐƠN CÔI Ở DÒNG CUỐI (${result.orphanWords.length} chỗ, thêm text-pretty, tiêu đề ngắn text-balance, T10):`);
+      for (const item of result.orphanWords.slice(0, 5)) problems.push(`  ${item}`);
+    }
     if (result.misalignedFields.length > 0) {
       problems.push(`Ô NHẬP LỆCH MÉP VỚI NÚT RỘNG HẾT KHUNG (${result.misalignedFields.length} khung, ô và nút phải cùng mép trái phải):`);
       for (const item of result.misalignedFields.slice(0, 5)) problems.push(`  ô ${item.field}, nút ${item.button}: ${item.element}`);
@@ -3513,6 +3818,10 @@ function formatReport(results) {
     if (result.misformattedNumbers?.length > 0) {
       problems.push(`SỐ VIẾT SAI KIỂU TIẾNG VIỆT (${result.misformattedNumbers.length} chỗ, dấu phẩy thập phân, làm tròn, T28 trong rules-type.md):`);
       for (const item of result.misformattedNumbers) problems.push(`  ${item}`);
+    }
+    if (result.darkModeProblems?.length > 0) {
+      problems.push(`DARK MODE (${result.darkModeProblems.length} chỗ, rules-color.md M21, M31–M33):`);
+      for (const item of result.darkModeProblems) problems.push(`  ${item}`);
     }
     if (result.brokenImages?.length > 0) {
       problems.push(`ẢNH KHÔNG TẢI ĐƯỢC (${result.brokenImages.length} ảnh, thay link khác hoặc khai host trong next.config, SKILL.md S16):`);

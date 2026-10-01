@@ -88,19 +88,19 @@ Trang dùng nhiều và nhiều tương tác đi trước.
 
 | # | Trang | Route | Rà ngày |
 | --- | --- | --- | --- |
-| 1 | Khung app + tổng quan | `/dashboard`, `/dashboard/overview/states` | 26/09/2026 (tổng quan, ba lượt) |
-| 2 | Công việc: bảng nhóm, kanban, tạo mới | `/dashboard/tasks`, `/tasks/new`, `/tasks/states` | 26/09/2026 (kanban, ba lượt, đã theo kịp; popover Lọc, ba lượt, đã theo kịp); 27/09/2026 (bảng nhóm, một lượt: khuôn theo bề rộng khung, đã theo kịp; tạo mới, một lượt: nhóm radio, bộ đếm ký tự, đã theo kịp; `/states`, một lượt: khung chờ cột nhảy ngang, đã theo kịp) |
-| 3 | Khách hàng: danh sách, xem nhanh, chi tiết | `/dashboard/customers`, `/customers/quick-view`, `/customers/c-030`, `/customers/khong-co`, `/customers/states` | 27/09/2026 (danh sách, một lượt: ẩn cột phụ ở khung vừa, số đếm phân trang ở 375px; xem nhanh, một lượt: vùng bấm nút sao chép, hàng có avatar lệch baseline; chi tiết, một lượt: số ô số liệu lệch hàng khi nhãn xuống dòng; `khong-co`, một lượt: gộp về khuôn 404 trong khung; `/states`, một lượt: không lỗi mới; đã theo kịp cả bốn trang) |
+| 1 | Khung app + tổng quan | `/dashboard`, `/dashboard/overview/states` | tối: 01/10/2026 (`/dashboard`, một lượt: cột biểu đồ màu nhấn 100% chói nhất màn, thêm `--chart-fill` 70% ở nền tối, chủ dự án chọn sau khi xem ba bản; probe bắt, và đo dark mode dời lên ngay sau khi chụp); 26/09/2026 (tổng quan, ba lượt) |
+| 2 | Công việc: bảng nhóm, kanban, tạo mới | `/dashboard/tasks`, `/tasks/new`, `/tasks/states` | tối: 01/10/2026 (`/dashboard/tasks`, một lượt: tên người phụ trách xuống ba dòng vì `not-sr-only` trả `white-space: normal`, thêm W11; "Khẩn cấp" `text-amber-700` 3.74:1 cạnh "Quá hạn" `amber-400`, `M7`/`M32` ghi `-700` phải kèm `dark:` `-400`; tên việc ở 375px trơ một chữ dòng hai, spec danh sách dòng thêm `text-pretty`, probe đo chữ đơn côi; sửa bốn chỗ probe báo nhầm: chữ `sr-only`, nút lọc cố ý không hover, avatar tròn trên header, ô hạn trống mất icon; dự án chưa theo kịp: lịch hạn chót không chuyển động, header trong suốt, vòng focus); `/tasks/new`, `/tasks/states`, một lượt: form, focus xanh 60% 3.37:1, lịch đúng; vệt khung chờ `bg-background` khoét lỗ ở nền tối, mẫu `empty-state.md` đổi `bg-foreground/5`, probe bắt); 26/09/2026 (kanban, ba lượt, đã theo kịp; popover Lọc, ba lượt, đã theo kịp); 27/09/2026 (bảng nhóm, một lượt: khuôn theo bề rộng khung, đã theo kịp; tạo mới, một lượt: nhóm radio, bộ đếm ký tự, đã theo kịp; `/states`, một lượt: khung chờ cột nhảy ngang, đã theo kịp) |
+| 3 | Khách hàng: danh sách, xem nhanh, chi tiết | `/dashboard/customers`, `/customers/quick-view`, `/customers/c-030`, `/customers/khong-co`, `/customers/states` | tối: 01/10/2026 (danh sách, một lượt: `--primary-hover` tối `#ffffff` đổi `#cfd5e0`, probe bắt; sidebar đang chọn chưa theo kịp); 27/09/2026 (danh sách, một lượt: ẩn cột phụ ở khung vừa, số đếm phân trang ở 375px; xem nhanh, một lượt: vùng bấm nút sao chép, hàng có avatar lệch baseline; chi tiết, một lượt: số ô số liệu lệch hàng khi nhãn xuống dòng; `khong-co`, một lượt: gộp về khuôn 404 trong khung; `/states`, một lượt: không lỗi mới; đã theo kịp cả bốn trang) |
 | 4 | Đơn hàng: chi tiết, xem nhanh | `/dashboard/orders/detail`, `/orders/quick-view` | 27/09/2026 (modal chi tiết, một lượt: số tiền ngắt dòng ở 375px; xem nhanh, một lượt: không lỗi skill mới; đã theo kịp cả hai) |
 | 5 | Thành viên và phân quyền | `/dashboard/members` | 25/09/2026 (chín lượt; cả luồng xác thực đã theo kịp) |
 | 6 | Hồ sơ cá nhân | `/dashboard/profile`, `/profile/states` | 27/09/2026 (một lượt: "Gửi lại · Huỷ" của email chờ xác nhận, đã theo kịp) |
-| 7 | Đăng nhập, đăng ký, quên mật khẩu, OTP | `/login`, `/register`, `/forgot-password`, `/forgot-password/verify`, `/forgot-password/new-password`, `/forgot-password/states`, `/verify-otp`, `/verify-otp/states` | 25/09/2026 (chín lượt; cả luồng xác thực đã theo kịp) |
+| 7 | Đăng nhập, đăng ký, quên mật khẩu, OTP | tối: 01/10/2026 (`/login`, `/verify-otp`, một lượt: probe sạch; card một mình không viền vẫn đúng ở nền tối, thử viền và bóng đều tệ hơn, ghi vào `M29`) · `/login`, `/register`, `/forgot-password`, `/forgot-password/verify`, `/forgot-password/new-password`, `/forgot-password/states`, `/verify-otp`, `/verify-otp/states` | 25/09/2026 (chín lượt; cả luồng xác thực đã theo kịp) |
 | 8 | Bảng giá | `/pricing`, `/pricing/joined` | 26/09/2026 (bảy lượt) |
 | 9 | Form đăng ký doanh nghiệp | `/business-registration` | 27/09/2026 (một lượt: không lỗi hình; Tiếp / Quay lại chưa nối xử lý, là logic dự án, `N10`) |
 | 10 | Trợ lý AI | `/dashboard/assistant`, `/assistant/states` | 27/09/2026 (một lượt: không lỗi skill mới, đã theo kịp; sửa báo nhầm dấu câu sau `<code>` của probe) |
 | 11 | Tài liệu (cây thư mục) | `/dashboard/projects/documents`, `/documents/states` | 27/09/2026 (một lượt: vùng bấm "Thử lại", gộp luật chung vào `N9`; sửa báo nhầm focus ô file ẩn; route này là khu tải tệp, cây thư mục nằm ở `/components`: tooltip tên dài tràn màn ở 375px; đã theo kịp) |
 | 12 | Thông báo | `/dashboard/notifications/states` | 27/09/2026 (một lượt: không lỗi hình; "Đánh dấu đã đọc" chưa nối xử lý, là logic dự án, `N10`) |
-| 13 | Thư viện component | `/components` | 26/09/2026 (ô số lượng, ba lượt; tên sửa tại chỗ, hai lượt, đã theo kịp; tiêu đề cột sắp xếp, hai lượt, đã theo kịp) |
+| 13 | Thư viện component | `/components` | tối: 01/10/2026 (lớp nổi, một lượt: `--secondary-hover` tối 0.11 → 0.13; lớp phủ `bg-foreground/40` thành màn sương sáng và mục trỏ `isHighlighted && "bg-background"` khoét lỗ, thêm vào `M32`, probe bắt cả hai, đo cả lúc lớp nổi mở); 26/09/2026 (ô số lượng, ba lượt; tên sửa tại chỗ, hai lượt, đã theo kịp; tiêu đề cột sắp xếp, hai lượt, đã theo kịp) |
 | 14 | Tạo dự án (khu "Cài đặt nâng cao" thu gọn) | `/dashboard/projects/new` | 26/09/2026 (hai lượt, đã theo kịp) |
 | 15 | Form tạo workspace ba bước | `/workspaces/new` | 26/09/2026 (ba lượt, đã theo kịp) |
 | 16 | Cài đặt thông báo (và hàng tab khu cài đặt) | `/dashboard/settings`, `/settings/notifications`, `/settings/notifications/states` | 26/09/2026 (hai lượt, đã theo kịp; 27/09/2026 công tắc chưa nới vùng bấm, dự án chưa theo kịp) |
@@ -110,7 +110,7 @@ Trang dùng nhiều và nhiều tương tác đi trước.
 | 20 | Khoá API | `/dashboard/settings/api-keys`, `/api-keys/states` | 26/09/2026 (hai lượt; lượt hai đã theo kịp); 27/09/2026 (đo lại: card "Quyền" trong hộp tạo khoá, Tab tới card đang chọn không đổi gì, lỗi skill đã sửa, dự án chưa theo kịp) |
 | 21 | Trang lỗi: 404, 403, 500, bảo trì | `/errors/states`, `/403`, `/500`, `/maintenance`, `/khong-co`, `/dashboard/khong-co` | 26/09/2026 (năm lượt; lượt năm đã theo kịp) |
 | 22 | Xoá workspace (vùng nguy hiểm, hộp gõ lại tên) | `/dashboard/settings/workspace`, `/workspace/states` | 26/09/2026 (hai lượt, đã theo kịp) |
-| 23 | Báo cáo doanh thu (khoảng ngày, biểu đồ đường) | `/dashboard/revenue`, `/revenue/states` | 27/09/2026 (ba lượt, đã theo kịp) |
+| 23 | Báo cáo doanh thu (khoảng ngày, biểu đồ đường) | `/dashboard/revenue`, `/revenue/states` | tối: 01/10/2026 (`/dashboard/revenue` + khối Biểu đồ, Badge, Avatar ở `/components`, một lượt: rãnh thanh tiến độ và dải giữa khoảng ngày `bg-background` thành vệt đen / lỗ khoét; `choice-controls.md` năm chỗ sang `bg-item-hover` (gồm mục đang sáng trong select), `charts.md`, `file-upload.md` rãnh sang `bg-foreground/5`; probe nhận rãnh theo hình); 27/09/2026 (ba lượt, đã theo kịp) |
 | 24 | Thanh toán: gói đang dùng, lịch sử hoá đơn | `/dashboard/settings/billing`, `/billing/states` | 27/09/2026 (bốn lượt; lượt ba đã theo kịp, lượt bốn đã theo kịp) |
 
 Route mới xuất hiện trong dự án thì thêm dòng vào bảng (`grep -rhoE "path: ?['\"][^'\"]+" src`).
@@ -326,6 +326,10 @@ chấm biểu đồ doanh thu); `-left-[5px]` của cây thư mục là chỗ gi
 Ghi dồn ở đây qua các lượt, để người dùng sửa dự án một lần. Đo lại trên trang thật khi người
 dùng báo đã sửa (bước 7); mục nào đã theo kịp thì xoá khỏi danh sách, ghi vào cột "Rà ngày".
 Lần đo lại 27/09/2026: 29 route, 25 mục đã theo kịp, còn công tắc và bỏ số âm (`N11`).
+Quét tối 01/10/2026 (`probe --dark`, 57 route, 375 và 1280px): mọi mục dark mode các lượt trước đã theo kịp
+(nền rê nút chính, viền đậm, `--chart-fill`, ô chọn, bảng lệnh, khung chờ, rãnh, dải khoảng ngày, `--secondary-hover`); 43 route sạch.
+Quét lại 01/10/2026 chiều: 14 route tối và 3 route sáng sạch; màu hổ phách, lớp phủ bản mẫu, sidebar đang chọn đã theo kịp.
+Dark mode của dự án test xong.
 
 - Công tắc ở `/dashboard/settings/notifications` (27/09/2026, probe 375px; đo lại cùng ngày vẫn còn): bảy công
   tắc 44×24 không có vùng bấm nới ra. Skill ghi `relative before:absolute before:-inset-2` trên nút

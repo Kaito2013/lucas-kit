@@ -88,11 +88,11 @@ async function launchBrowser(chromium) {
 const freezeMotionCss = "*,*::before,*::after{transition:none!important;animation-duration:0s!important;animation-delay:0s!important;caret-color:transparent!important}";
 
 // Probe tắt mọi chuyển động trước khi đo (ảnh chụp ổn định), nên ghi lại `transition` của từng phần tử vào
-// `data-evon-transition` trước đó, để các mục đo chuyển động (18f, 18g) còn đọc được.
+// `data-lucas-transition` trước đó, để các mục đo chuyển động (18f, 18g) còn đọc được.
 function stampTransitions() {
   for (const element of document.body.querySelectorAll("*")) {
     const style = getComputedStyle(element);
-    if (parseFloat(style.transitionDuration) > 0) element.dataset.evonTransition = style.transitionProperty;
+    if (parseFloat(style.transitionDuration) > 0) element.dataset.lucasTransition = style.transitionProperty;
   }
 }
 
@@ -1450,7 +1450,7 @@ function measureInPage({ minTapSize, isMobile, isSweep = false }) {
   const nestedFadeDialogs = [];
   for (const dialog of document.querySelectorAll("[role='dialog'], dialog")) {
     if (nestedFadeDialogs.length >= 3) break;
-    const isFading = (element) => /opacity|all/.test(element.dataset.evonTransition || "");
+    const isFading = (element) => /opacity|all/.test(element.dataset.lucasTransition || "");
     if (!isFading(dialog)) continue;
     for (let node = dialog.parentElement; node && node !== document.body; node = node.parentElement) {
       const style = getComputedStyle(node);
@@ -1471,7 +1471,7 @@ function measureInPage({ minTapSize, isMobile, isSweep = false }) {
     if (untransitionedMotion.length >= 6) break;
     const classNames = element.getAttribute("class") || "";
     if (!/(^|[\s:])-?(scale|translate|rotate)-/.test(classNames)) continue;
-    const property = element.dataset.evonTransition || "";
+    const property = element.dataset.lucasTransition || "";
     if (!/\btransform\b/.test(property) || /\b(all|scale|translate|rotate)\b/.test(property)) continue;
     untransitionedMotion.push(`transition: ${property}: ${describe(element)}`);
   }
@@ -1901,11 +1901,11 @@ async function findDrawnFocusRings(page) {
       const element = document.activeElement;
       // Lớp báo lỗi của Next lúc dev (`nextjs-portal`) không phải của trang (báo nhầm 28/09/2026).
       if (!element || element === document.body || element.tagName.startsWith("NEXTJS")) return null;
-      if (!element.dataset.evonProbeId) element.dataset.evonProbeId = String(Math.random()).slice(2);
+      if (!element.dataset.lucasProbeId) element.dataset.lucasProbeId = String(Math.random()).slice(2);
       const label = (element.getAttribute("aria-label") || element.textContent.trim() || element.getAttribute("title") || "").trim().replace(/\s+/g, " ").slice(0, 40);
       const isField = element.matches("input:not([type='checkbox']):not([type='radio']):not([type='range']), textarea, select, [contenteditable='true'], [role='combobox']");
 
-      return { id: element.dataset.evonProbeId, kind: `${element.tagName}|${element.getAttribute("class") || ""}`, element: `${element.tagName.toLowerCase()} "${label}"`, isField };
+      return { id: element.dataset.lucasProbeId, kind: `${element.tagName}|${element.getAttribute("class") || ""}`, element: `${element.tagName.toLowerCase()} "${label}"`, isField };
     });
 
     // Focus rơi về body: đi hết cuối trang, Tab tiếp sẽ vòng lại đầu. Trang tự focus ô chat lúc tải thì vòng
@@ -1968,7 +1968,7 @@ const maxTruncatedTaps = 10;
 // Đọc màu thật trên màn của một phần tử: nền của nó phủ lên nền đặc gần nhất phía sau. Màu oklab /
 // oklch của Tailwind v4 đổi sang rgb qua canvas.
 function readHoverState(probeId) {
-  const element = document.querySelector(`[data-evon-hover-id="${probeId}"]`);
+  const element = document.querySelector(`[data-lucas-hover-id="${probeId}"]`);
   if (!element) return null;
 
   const canvas = document.createElement("canvas");
@@ -2106,7 +2106,7 @@ function formatColor(color) {
 // Vị trí các khối đứng sau phần tử (anh em kế tiếp của nó và của bốn cấp cha): rê vào mà mấy khối này
 // dời đi là hover đang thêm hay nở phần tử, cả hàng card bên dưới nhảy theo.
 function readFollowerTops(probeId) {
-  const element = document.querySelector(`[data-evon-hover-id="${probeId}"]`);
+  const element = document.querySelector(`[data-lucas-hover-id="${probeId}"]`);
   const tops = [];
 
   for (let node = element, level = 0; node && node !== document.body && level < 5; node = node.parentElement, level++) {
@@ -2147,9 +2147,9 @@ async function probeHoverStates(page) {
       const signature = `${element.tagName}|${element.getAttribute("class") || ""}`;
       if (seenSignatures.has(signature)) continue;
       seenSignatures.add(signature);
-      element.dataset.evonHoverId = String(ids.length);
-      if (!element.matches(colorProbeSelector)) element.dataset.evonLayoutOnly = "1";
-      ids.push(element.dataset.evonHoverId);
+      element.dataset.lucasHoverId = String(ids.length);
+      if (!element.matches(colorProbeSelector)) element.dataset.lucasLayoutOnly = "1";
+      ids.push(element.dataset.lucasHoverId);
       if (ids.length >= limit) break;
     }
 
@@ -2157,7 +2157,7 @@ async function probeHoverStates(page) {
   }, maxHoverTargets);
 
   for (const probeId of probeIds) {
-    const locator = page.locator(`[data-evon-hover-id="${probeId}"]`);
+    const locator = page.locator(`[data-lucas-hover-id="${probeId}"]`);
     await page.mouse.move(1, 1);
     const isReady = await locator.scrollIntoViewIfNeeded({ timeout: 800 }).then(() => true, () => false);
     if (!isReady) continue;
@@ -2189,7 +2189,7 @@ async function probeHoverStates(page) {
     if (vanishedIndex !== -1) {
       vanishedChildren.push(`${label}: nền rê ${formatColor(after.color)} trùng nền khối con bên trong (ô icon, badge), khối con biến mất lúc rê`);
     }
-    if (await locator.evaluate((element) => element.dataset.evonLayoutOnly === "1")) continue;
+    if (await locator.evaluate((element) => element.dataset.lucasLayoutOnly === "1")) continue;
 
     // Viền xét trước: nút viền đổi màu viền mà nền đứng yên vẫn là ca cần báo.
     // Viền tan hẳn mà nền đổi là nút lặp trên dòng của I4 (rê vào thì viền trong suốt, nền đỏ nhạt,
@@ -2334,7 +2334,7 @@ function findHeavyLayerLines() {
 // - "hidden": lớp đang ẩn mà vẫn nằm trong DOM (`<dialog>` đóng, popover, `[hidden]`, role dialog / menu /
 //   listbox bị ẩn). Style vẫn đọc được dù đang `display: none`.
 // - "opened": lớp vừa mở sau cú bấm (modal gắn vào DOM lúc mở). Lớp đã hiện trước khi bấm mang
-//   `data-evon-seen-layer` hoặc `data-evon-before`, không tính.
+//   `data-lucas-seen-layer` hoặc `data-lucas-before`, không tính.
 function findNativeControls(mode) {
   const layerSelector = "dialog, [popover], [role='dialog'], [role='menu'], [role='listbox'], [data-radix-popper-content-wrapper], [hidden]";
   const describeLayer = (layer) => `${layer.tagName.toLowerCase()}${layer.getAttribute("role") ? `[role=${layer.getAttribute("role")}]` : ""} "${(layer.textContent || "").trim().replace(/\s+/g, " ").slice(0, 30)}"`;
@@ -2360,7 +2360,7 @@ function findNativeControls(mode) {
     if (!layer) continue;
     const outerLayer = [...document.querySelectorAll(layerSelector)].find((candidate) => candidate.contains(layer) && !candidate.parentElement?.closest(layerSelector)) || layer;
     if (mode === "hidden" && isShown(control)) continue;
-    if (mode === "opened" && (!isShown(control) || outerLayer.dataset.evonSeenLayer || outerLayer.dataset.evonBefore)) continue;
+    if (mode === "opened" && (!isShown(control) || outerLayer.dataset.lucasSeenLayer || outerLayer.dataset.lucasBefore)) continue;
     const kind = kindOf(control);
     if (!kind) continue;
     const key = describeLayer(outerLayer);
@@ -2374,7 +2374,7 @@ function findNativeControls(mode) {
 // hay `display` hiện ra tức thì. Control gốc bên trong thì `findNativeControls` đo.
 function findPopupDetails(freezeCss) {
   // Probe tắt mọi transition để chụp ổn định (freezeMotionCss); lớp nổi gắn vào DOM sau lúc ghi
-  // `data-evon-transition`, nên tạm tắt khối đóng băng để đọc style thật, đọc xong bật lại.
+  // `data-lucas-transition`, nên tạm tắt khối đóng băng để đọc style thật, đọc xong bật lại.
   const freezeTags = [...document.querySelectorAll("style")].filter((tag) => tag.textContent === freezeCss);
   for (const tag of freezeTags) tag.media = "not all";
   const describeLayer = (element) => `${element.tagName.toLowerCase()}${element.getAttribute("role") ? `[role=${element.getAttribute("role")}]` : ""} "${(element.textContent || "").trim().replace(/\s+/g, " ").slice(0, 30)}"`;
@@ -2384,7 +2384,7 @@ function findPopupDetails(freezeCss) {
   for (const layer of document.querySelectorAll("[role='menu'], [role='listbox'], [role='dialog'], [data-radix-popper-content-wrapper] > *, [popover]")) {
     const rect = layer.getBoundingClientRect();
     // Lớp đã hiện sẵn trước khi bấm (listbox nằm trong trang, không phải lớp nổi) không tính.
-    if (rect.width === 0 || layer.dataset.evonSeenLayer || getComputedStyle(layer).visibility === "hidden") continue;
+    if (rect.width === 0 || layer.dataset.lucasSeenLayer || getComputedStyle(layer).visibility === "hidden") continue;
     // Lớp nằm trong một lớp khác (listbox trong khung popover của Select) thì khung ngoài mới là lớp nổi.
     if (layer.parentElement?.closest("[role='menu'], [role='listbox'], [role='dialog'], [popover]")) continue;
     // Chuyển động có thể nằm ở khung bọc ngoài: đi ngược lên tới khung nổi (fixed / absolute) gần nhất.
@@ -2433,16 +2433,16 @@ async function probePopupLayers(page, isMobile, isDark = false) {
     const ids = [];
     const popupTriggers = [...document.querySelectorAll("[aria-haspopup]:not([aria-haspopup='false'])")].filter((element) => element.getBoundingClientRect().width > 0).slice(0, popupLimit);
     for (const element of popupTriggers) {
-      element.dataset.evonPopupId = `popup-${ids.length}`;
-      ids.push(element.dataset.evonPopupId);
+      element.dataset.lucasPopupId = `popup-${ids.length}`;
+      ids.push(element.dataset.lucasPopupId);
     }
     if (isTouch) {
       const truncated = [...document.querySelectorAll("body *")]
         .filter((element) => element.children.length === 0 && element.scrollWidth > element.clientWidth + 1 && getComputedStyle(element).textOverflow === "ellipsis" && !element.closest("a[href]"))
         .slice(0, tapLimit);
       for (const element of truncated) {
-        element.dataset.evonPopupId = `tap-${ids.length}`;
-        ids.push(element.dataset.evonPopupId);
+        element.dataset.lucasPopupId = `tap-${ids.length}`;
+        ids.push(element.dataset.lucasPopupId);
       }
     }
 
@@ -2454,8 +2454,8 @@ async function probePopupLayers(page, isMobile, isDark = false) {
     const ids = [];
     [...document.querySelectorAll("dialog:not([open])")].slice(0, 2).forEach((dialog, dialogIndex) => {
       for (const element of [...dialog.querySelectorAll("[aria-haspopup]:not([aria-haspopup='false'])")].slice(0, limit)) {
-        element.dataset.evonPopupId = `dialog${dialogIndex}-${ids.length}`;
-        ids.push(element.dataset.evonPopupId);
+        element.dataset.lucasPopupId = `dialog${dialogIndex}-${ids.length}`;
+        ids.push(element.dataset.lucasPopupId);
       }
     });
 
@@ -2463,21 +2463,21 @@ async function probePopupLayers(page, isMobile, isDark = false) {
   }, maxPopupTriggers);
 
   for (const triggerId of [...triggerIds, ...dialogTriggerIds]) {
-    const locator = page.locator(`[data-evon-popup-id="${triggerId}"]`);
+    const locator = page.locator(`[data-lucas-popup-id="${triggerId}"]`);
     const isTap = triggerId.startsWith("tap-");
     if (triggerId.startsWith("dialog")) {
       await page.evaluate((id) => {
-        const dialog = document.querySelector(`[data-evon-popup-id="${id}"]`)?.closest("dialog");
+        const dialog = document.querySelector(`[data-lucas-popup-id="${id}"]`)?.closest("dialog");
         if (!dialog || dialog.open) return;
         dialog.showModal();
-        dialog.dataset.evonSeenLayer = "1";
-        dialog.dataset.evonProbeOpened = "1";
+        dialog.dataset.lucasSeenLayer = "1";
+        dialog.dataset.lucasProbeOpened = "1";
       }, triggerId);
       await page.waitForTimeout(200);
     }
     await page.evaluate(() => {
       for (const layer of document.querySelectorAll("[role='menu'], [role='listbox'], [role='dialog'], [popover]")) {
-        if (layer.getBoundingClientRect().width > 0 && Number(getComputedStyle(layer).opacity) > 0.5) layer.dataset.evonSeenLayer = "1";
+        if (layer.getBoundingClientRect().width > 0 && Number(getComputedStyle(layer).opacity) > 0.5) layer.dataset.lucasSeenLayer = "1";
       }
     });
     const isDone = await (isTap ? locator.tap({ timeout: 800, force: true }) : locator.click({ timeout: 800, force: true })).then(() => true, () => false);
@@ -2501,13 +2501,13 @@ async function probePopupLayers(page, isMobile, isDark = false) {
     // chevron / icon lịch mất tới lần mở sau (đã dính 30/09/2026, wireframe kho hàng, cả select lẫn ô ngày).
     if (!isTap) {
       const pickedTrigger = await page.evaluate((id) => {
-        const trigger = document.querySelector(`[data-evon-popup-id="${id}"]`);
+        const trigger = document.querySelector(`[data-lucas-popup-id="${id}"]`);
         const isPicker = trigger?.getAttribute("role") === "combobox" || ["listbox", "dialog", "grid"].includes(trigger?.getAttribute("aria-haspopup"));
         if (!isPicker) return null;
         const isInOpenedLayer = (element) => {
           const layer = element.closest("[role='listbox'], [role='dialog'], [role='grid'], [popover], [data-radix-popper-content-wrapper]");
 
-          return Boolean(layer) && !layer.dataset.evonSeenLayer && element.getClientRects().length > 0;
+          return Boolean(layer) && !layer.dataset.lucasSeenLayer && element.getClientRects().length > 0;
         };
         const options = [...document.querySelectorAll("[role='option']:not([aria-selected='true']):not([aria-disabled='true'])")].filter(isInOpenedLayer);
         // Ô ngày: nút chỉ có một con số 1–31, chưa chọn, không thuộc tháng khác.
@@ -2584,7 +2584,7 @@ const maxStateGroups = 15;
 // Những gì phần tử và con cháu (hai tầng) đang vẽ: nền và vòng (outline / box-shadow), kèm kích
 // thước, có tròn không, và đường dẫn con (`0` là chính nó) để so trước với sau.
 function readStatePaints(probeId) {
-  const element = document.querySelector(`[data-evon-state-id="${probeId}"]`);
+  const element = document.querySelector(`[data-lucas-state-id="${probeId}"]`);
   if (!element) return null;
 
   const canvas = document.createElement("canvas");
@@ -2692,8 +2692,8 @@ async function probeStateShapes(page) {
       // ngoài, không trên link. Đo trên dòng (báo sót 28/09/2026, danh sách việc làm).
       const selectedRow = selected.tagName === "A" ? selected.closest("li") : null;
       const siblingRow = selectedRow && group.contains(selectedRow) ? sibling.closest("li") : null;
-      (siblingRow ? selectedRow : selected).dataset.evonStateId = `selected-${found.length}`;
-      (siblingRow || sibling).dataset.evonStateId = `sibling-${found.length}`;
+      (siblingRow ? selectedRow : selected).dataset.lucasStateId = `selected-${found.length}`;
+      (siblingRow || sibling).dataset.lucasStateId = `sibling-${found.length}`;
       // Bấm thử chỉ với nút đổi lựa chọn tại chỗ: link thì chuyển trang, nút submit thì gửi form.
       const isSubmit = sibling.tagName === "BUTTON" && sibling.type === "submit" && sibling.form;
       const canClick = !sibling.closest("a[href]") && !isSubmit;
@@ -2707,7 +2707,7 @@ async function probeStateShapes(page) {
 
   for (const group of groups) {
     const siblingId = `sibling-${group.index}`;
-    const sibling = page.locator(`[data-evon-state-id="${siblingId}"]`);
+    const sibling = page.locator(`[data-lucas-state-id="${siblingId}"]`);
     await page.mouse.move(1, 1);
     await page.evaluate(() => document.activeElement?.blur());
     const isReady = await sibling.scrollIntoViewIfNeeded({ timeout: 800 }).then(() => true, () => false);
@@ -2772,12 +2772,12 @@ async function findCheckedHoverChanges(page) {
         return rect.width > 0 && rect.height > 0 && !control.closest("[inert], [aria-hidden='true']") && getComputedStyle(control).visibility !== "hidden";
       })
       .slice(0, 4);
-    controls.forEach((control, index) => { control.dataset.evonCheckedId = String(index); });
+    controls.forEach((control, index) => { control.dataset.lucasCheckedId = String(index); });
 
     return controls.map((_, index) => String(index));
   });
   const readPaint = (id) => page.evaluate((checkedId) => {
-    const control = document.querySelector(`[data-evon-checked-id="${checkedId}"]`);
+    const control = document.querySelector(`[data-lucas-checked-id="${checkedId}"]`);
     const style = getComputedStyle(control);
     const label = (control.closest("label")?.textContent || control.getAttribute("aria-label") || "").trim().replace(/\s+/g, " ").slice(0, 24);
 
@@ -2788,7 +2788,7 @@ async function findCheckedHoverChanges(page) {
   const changes = [];
   for (const id of ids) {
     const before = await readPaint(id);
-    const isHovered = await page.locator(`[data-evon-checked-id="${id}"]`).hover({ timeout: 800, force: true }).then(() => true, () => false);
+    const isHovered = await page.locator(`[data-lucas-checked-id="${id}"]`).hover({ timeout: 800, force: true }).then(() => true, () => false);
     if (!isHovered) continue;
     await page.waitForTimeout(60);
     const after = await readPaint(id);
@@ -3036,12 +3036,12 @@ function findSunkenSelections() {
 
     return Boolean(fill) && readHex(getComputedStyle(fill).backgroundColor) !== null && fill.getBoundingClientRect().width < rect.width;
   });
-  for (const element of shapedTracks) element.dataset.evonTrack = "1";
-  for (const element of document.querySelectorAll(`${selector}, [data-evon-track]`)) {
+  for (const element of shapedTracks) element.dataset.lucasTrack = "1";
+  for (const element of document.querySelectorAll(`${selector}, [data-lucas-track]`)) {
     if (findings.size >= 3) break;
     const rect = element.getBoundingClientRect();
     // Rãnh `h-1`, `h-2` và vệt chờ `h-3` thấp hơn mục chọn: hạ ngưỡng cao riêng cho hai loại đó.
-    const minHeight = element.matches(".animate-pulse, [role=progressbar], [data-evon-track]") ? 2 : 16;
+    const minHeight = element.matches(".animate-pulse, [role=progressbar], [data-lucas-track]") ? 2 : 16;
     if (rect.width < 24 || rect.height < minHeight || readHex(getComputedStyle(element).backgroundColor) !== pageHex) continue;
     let ancestor = element.parentElement;
     let ancestorHex = null;
@@ -3052,7 +3052,7 @@ function findSunkenSelections() {
     if (!ancestorHex || ancestorHex === pageHex) continue;
     const label = (element.textContent || element.getAttribute("aria-label") || "").trim().replace(/\s+/g, " ").slice(0, 30);
     const isSkeleton = element.classList.contains("animate-pulse");
-    const isTrack = element.getAttribute("role") === "progressbar" || element.dataset.evonTrack === "1";
+    const isTrack = element.getAttribute("role") === "progressbar" || element.dataset.lucasTrack === "1";
     findings.add(isSkeleton || isTrack
       ? `${isTrack ? "rãnh thanh tiến độ" : "vệt khung chờ"} tô nền trang ${pageHex}, tối hơn khung ${ancestorHex}, thành vệt đen: dùng bg-foreground/5 (M21${isTrack ? ", components/charts.md" : ", components/empty-state.md"})`
       : `mục đang chọn / đang trỏ tô nền trang ${pageHex}, tối hơn khung ${ancestorHex}, như lỗ khoét: dùng --item-hover (trỏ, rê) hoặc --secondary (đang chọn) (M21): ${element.getAttribute("role") || element.tagName.toLowerCase()} "${label}"`);
@@ -3360,7 +3360,7 @@ function markOpenerButtons({ limit, openerSource, actionSource, openerIconPatter
     if (seenKeys.has(key)) continue;
     seenKeys.add(key);
 
-    candidate.dataset.evonOpenerId = String(openers.length);
+    candidate.dataset.lucasOpenerId = String(openers.length);
     openers.push(label.slice(0, 30) || `${candidate.tagName.toLowerCase()} chỉ có icon (${(iconNames.match(/lucide-[a-z-]+/) || ["?"])[0]})`);
   }
 
@@ -3372,7 +3372,7 @@ function markVisibleLayers() {
     const style = getComputedStyle(node);
     const isPositioned = style.position === "fixed" || style.position === "absolute";
     const rect = node.getBoundingClientRect();
-    if (isPositioned && rect.width * rect.height > 0 && style.visibility !== "hidden" && style.display !== "none") node.dataset.evonBefore = "1";
+    if (isPositioned && rect.width * rect.height > 0 && style.visibility !== "hidden" && style.display !== "none") node.dataset.lucasBefore = "1";
   }
 }
 
@@ -3406,7 +3406,7 @@ function findOpenedLayerProblems(triggerLabel) {
   const newLayers = [...document.querySelectorAll("body *")].filter((node) => {
     const style = getComputedStyle(node);
 
-    return !node.dataset.evonBefore && (style.position === "fixed" || style.position === "absolute") && isShown(node);
+    return !node.dataset.lucasBefore && (style.position === "fixed" || style.position === "absolute") && isShown(node);
   });
   const roots = newLayers.filter((node) => !newLayers.some((other) => other !== node && other.contains(node)));
 
@@ -3470,7 +3470,7 @@ async function probeOpenerLayers(page, options, width) {
     await reloadForProbe(page, options);
     await page.evaluate(markOpenerButtons, markArgs);
     await page.evaluate(markVisibleLayers);
-    const isClicked = await page.locator(`[data-evon-opener-id="${index}"]`).click({ timeout: 800, force: true }).then(() => true, () => false);
+    const isClicked = await page.locator(`[data-lucas-opener-id="${index}"]`).click({ timeout: 800, force: true }).then(() => true, () => false);
     if (!isClicked) continue;
     await page.waitForTimeout(300);
 

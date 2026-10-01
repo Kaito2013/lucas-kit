@@ -6,11 +6,11 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Claude%20Code%20%7C%20Antigravity%20%7C%20Codex-purple)](#-cài-đặt)
-[![Skill](https://img.shields.io/badge/Skill-ui--ux-emerald)](#-cẩm-nang-ra-lệnh-command-cheatsheet)
-[![Version](https://img.shields.io/badge/Version-0.2.0-orange)](.claude-plugin/plugin.json)
+[![Skills](https://img.shields.io/badge/Skills-ui--ux%20%7C%20landing-emerald)](#-cẩm-nang-ra-lệnh-command-cheatsheet)
+[![Version](https://img.shields.io/badge/Version-0.2.0-orange)](package.json)
 
 <p align="center">
-  Dựng màn hình app, dashboard, table, form, modal và design system chuẩn xác theo đúng thư viện component và màu sắc nhận diện của dự án — <b>loại bỏ hoàn toàn giao diện AI cẩu thả, không phá vỡ cấu trúc hiện có.</b>
+  Dựng màn hình app, dashboard, table, form, modal, landing page và design system chuẩn xác theo đúng thư viện component và màu sắc nhận diện của dự án — <b>loại bỏ hoàn toàn giao diện AI cẩu thả, không phá vỡ cấu trúc hiện có.</b>
 </p>
 
 [Hướng Dẫn Sử Dụng Chi Tiết](HUONG_DAN_SU_DUNG.md) • [Tính Năng](#-tính-năng-nổi-bật) • [Quy Trình](#-quy-trình-làm-việc-chuẩn-designer) • [Cài Đặt](#-cài-đặt) • [Cẩm Nang Ra Lệnh](#-cẩm-nang-ra-lệnh-command-cheatsheet) • [Công Cụ Đo Đạc](#-bộ-công-cụ-kiểm-thử-tự-động-probemjs)
@@ -79,13 +79,13 @@ flowchart LR
 Antigravity tự động kích hoạt skill khi đặt vào thư mục cấu hình:
 
 ```bash
-# Cài đặt cho Antigravity IDE
+# Cài đặt cho Antigravity IDE (toàn bộ skills: ui-ux và landing)
 mkdir -p ~/.gemini/config/skills
-cp -r /Users/hoaiminh/lucas-kit/skills/ui-ux ~/.gemini/config/skills/
+cp -r /Users/hoaiminh/lucas-kit/skills/* ~/.gemini/config/skills/
 
 # Hoặc cài đặt cho Antigravity CLI
 mkdir -p ~/.gemini/antigravity-cli/skills
-cp -r /Users/hoaiminh/lucas-kit/skills/ui-ux ~/.gemini/antigravity-cli/skills/
+cp -r /Users/hoaiminh/lucas-kit/skills/* ~/.gemini/antigravity-cli/skills/
 ```
 
 ---
@@ -97,14 +97,16 @@ Tích hợp vào project cụ thể hoặc thư mục dùng chung:
 ```bash
 # Dùng chung cho toàn hệ thống
 mkdir -p ~/.agents/skills
-cp -r /Users/hoaiminh/lucas-kit/skills/ui-ux ~/.agents/skills/
+cp -r /Users/hoaiminh/lucas-kit/skills/* ~/.agents/skills/
 ```
 
 ---
 
 ## 📖 Cẩm Nang Ra Lệnh (Command Cheatsheet)
 
-Cú pháp gọi lệnh: **`/lucas:ui-ux <nội dung đề bài>`**
+Bộ kit cung cấp 2 skill chuyên biệt theo nhu cầu:
+
+### 📱 1. Màn Hình Ứng Dụng & Dashboard: `/lucas:ui-ux`
 
 | Nhu cầu thực tế | Câu lệnh mẫu | Hành vi xử lý |
 | :--- | :--- | :--- |
@@ -113,8 +115,19 @@ Cú pháp gọi lệnh: **`/lucas:ui-ux <nội dung đề bài>`**
 | **Xây dựng Design System** | `/lucas:ui-ux Dựng design system cho app phòng khám trước, chưa cần màn nào.` | Tạo trang `/design-system` chuẩn hóa Token và 7 component nền tảng (Button, Badge, Input, Card, List Row, Modal, Empty State). |
 | **Soi & Bắt lỗi UI đang có** | `/lucas:ui-ux Xem giúp trang này chỗ nào chưa ổn: http://localhost:3000/orders` | Khởi động probe đo lường, xuất bảng phân tích lỗi kèm ảnh so sánh Trước/Sau để bạn duyệt sửa. |
 | **Tối ưu UI nhưng giữ Brand** | `/lucas:ui-ux Dựng lại trang này giữ brand.` | Làm gọn card, tinh chỉnh control, chuẩn hóa khoảng cách nhưng giữ nguyên 100% màu sắc nhận diện thương hiệu. |
-| **Làm mới theo gu hiện đại** | `/lucas:ui-ux Dựng lại hoàn toàn theo gu skill, bỏ style cũ.` | Tái cấu trúc toàn diện diện mạo, chuẩn hóa hệ thống phân cấp thị giác hiện đại (chỉ giữ logo và màu nhấn). |
 | **Refactor CSS sạch** | `/lucas:ui-ux Refactor CSS trang /settings sang Tailwind, giữ nguyên giao diện.` | Viết lại CSS sạch sẽ, xóa bỏ class thừa, cam kết không làm lệch giao diện 1 pixel nào. |
+
+---
+
+### 🚀 2. Landing Page & Trang Marketing: `/lucas:landing`
+
+| Nhu cầu thực tế | Câu lệnh mẫu | Hành vi xử lý |
+| :--- | :--- | :--- |
+| **Toàn bộ Landing Page** | `/lucas:landing Dựng landing page cho phần mềm quản lý kho SaaS, nhắm vào chủ shop vừa và nhỏ.` | Lên khung chuẩn 8 khối: Hero, Logo cloud, Bento features, Stats, Testimonials, Pricing, FAQ, Final CTA. |
+| **Hero Section chuyển đổi cao** | `/lucas:landing Thiết kế hero section 2 cột cho app học ngoại ngữ, kèm form đăng ký sớm.` | Tiêu đề H1 thu hút, Subtitle rõ ràng, Cặp nút CTA chính/phụ, Mockup UI đổ bóng đa tầng. |
+| **Bảng giá (Pricing Table)** | `/lucas:landing Dựng khối bảng giá 3 gói dịch vụ có switch thanh toán Năm/Tháng giảm giá 20%.` | 3 cột thẳng tầng, làm nổi bật gói khuyên dùng, liệt kê tính năng bằng icon check chuẩn nhịp spacing. |
+| **Bento Grid Tính năng** | `/lucas:landing Dựng khối bento grid 4 tính năng vượt trội cho ứng dụng Fintech.` | Lưới phi đối xứng hiện đại, chứa visual trực quan (mini chart, toggle switch, card giao dịch). |
+| **Dựng nhanh không wireframe** | `/lucas:landing Dựng luôn landing page dark mode giới thiệu developer tool, không cần wireframe.` | Chọn phong cách Dark High-Tech với gradient glow tinh tế và dựng code hoàn chỉnh ngay. |
 
 ---
 

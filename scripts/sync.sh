@@ -33,11 +33,25 @@ echo "📦 Phát hiện commit mới trên upstream (${CURRENT_UPSTREAM:0:7}). �
 git checkout upstream/master -- skills/ui-ux/references/
 git checkout upstream/master -- BACKLOG.md DARKMODE.md NEXT.md REVIEW.md TESTS.md 2>/dev/null || true
 
-# 4. Nếu probe.mjs có bản cập nhật mới, tự động nạp và chuyển sang lucas-probe
+# 4. Nếu probe.mjs có bản cập nhật mới, tự động nạp và chuyển sang tiền tố lucas
 TEMP_PROBE=$(mktemp)
 git show upstream/master:skills/ui-ux/scripts/probe.mjs > "$TEMP_PROBE"
 if [ -s "$TEMP_PROBE" ]; then
+  sed -i '' 's/data-evon/data-lucas/g' "$TEMP_PROBE"
+  sed -i '' 's/evonTransition/lucasTransition/g' "$TEMP_PROBE"
+  sed -i '' 's/evonProbeId/lucasProbeId/g' "$TEMP_PROBE"
+  sed -i '' 's/evonHoverId/lucasHoverId/g' "$TEMP_PROBE"
+  sed -i '' 's/evonLayoutOnly/lucasLayoutOnly/g' "$TEMP_PROBE"
+  sed -i '' 's/evonSeenLayer/lucasSeenLayer/g' "$TEMP_PROBE"
+  sed -i '' 's/evonBefore/lucasBefore/g' "$TEMP_PROBE"
+  sed -i '' 's/evonPopupId/lucasPopupId/g' "$TEMP_PROBE"
+  sed -i '' 's/evonProbeOpened/lucasProbeOpened/g' "$TEMP_PROBE"
+  sed -i '' 's/evonStateId/lucasStateId/g' "$TEMP_PROBE"
+  sed -i '' 's/evonCheckedId/lucasCheckedId/g' "$TEMP_PROBE"
+  sed -i '' 's/evonTrack/lucasTrack/g' "$TEMP_PROBE"
+  sed -i '' 's/evonOpenerId/lucasOpenerId/g' "$TEMP_PROBE"
   sed -i '' 's/evon-probe/lucas-probe/g' "$TEMP_PROBE"
+  sed -i '' 's/evon/lucas/g' "$TEMP_PROBE"
   cp "$TEMP_PROBE" skills/ui-ux/scripts/probe.mjs
   rm -f "$TEMP_PROBE"
 fi

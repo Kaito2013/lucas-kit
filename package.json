@@ -1,0 +1,20 @@
+{
+  "name": "lucas-kit",
+  "version": "0.2.0",
+  "description": "Intelligent UI/UX Engine & Design System for AI Coding Assistants",
+  "author": "Lucas",
+  "license": "MIT",
+  "homepage": "https://github.com/Kaito2013/lucas-kit",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kaito2013/lucas-kit.git"
+  },
+  "type": "module",
+  "scripts": {
+    "sync": "bash scripts/sync.sh",
+    "lint": "node skills/ui-ux/scripts/lint-skill.mjs --all",
+    "probe": "node skills/ui-ux/scripts/probe.mjs",
+    "install:antigravity": "mkdir -p ~/.gemini/config/skills && cp -r skills/* ~/.gemini/config/skills/",
+    "install:codex": "mkdir -p ~/.agents/skills && cp -r skills/* ~/.agents/skills/"
+  }
+}

@@ -10,7 +10,7 @@
     {
       "name": "lucas",
       "source": "./",
-      "description": "Gu UI/UX cho hệ thống dashboard: dựng màn mới theo bố cục chốt trước, và refactor codebase đã có mà không vỡ giao diện."
+      "description": "Bộ engine UI/UX toàn diện: thiết kế và dựng Dashboard/App (/lucas:ui-ux) và Landing Page chuyển đổi cao (/lucas:landing)."
     }
   ]
 }

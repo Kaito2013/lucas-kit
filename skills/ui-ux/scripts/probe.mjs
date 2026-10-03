@@ -1208,8 +1208,15 @@ function measureInPage({ minTapSize, isMobile, isSweep = false }) {
     }
   }
 
+  // Nhãn của ô đang khoá mờ theo ô là cố ý (choice-controls.md, bảng Khoá) và WCAG miễn chữ của control khoá.
+  function isLabelOfDisabledControl(element) {
+    const labelControl = element.closest("label")?.control;
+
+    return Boolean(labelControl?.matches(":disabled, [aria-disabled='true']"));
+  }
+
   for (const element of allElements) {
-    if (element.closest(":disabled, [aria-disabled='true']") || !isVisible(element)) continue;
+    if (element.closest(":disabled, [aria-disabled='true']") || isLabelOfDisabledControl(element) || !isVisible(element)) continue;
     const ownText = [...element.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent.trim()).join(" ").trim();
     if (ownText) checkContrast(element, getComputedStyle(element).color, ownText.slice(0, 24));
 
@@ -1720,6 +1727,31 @@ function measureInPage({ minTapSize, isMobile, isSweep = false }) {
   const wireframeBar = document.querySelector(".wf-bar");
   if (wireframeBar && viewportWidth >= 1280 && wireframeBar.scrollWidth > wireframeBar.clientWidth + 1) {
     wireframeChromeProblems.push(`thanh công cụ tràn ${wireframeBar.scrollWidth - wireframeBar.clientWidth}px ở ${viewportWidth}px: rút nhãn (Màn một hai chữ, Phương án chỉ chữ cái)`);
+  }
+  // Token focus theo màu nhấn đang áp (design-process.md, U3): đổi --primary trên body mà --border-focus khai
+  // `var(--primary)` ở :root thì đã tính xong ở :root, viền focus giữ màu cũ; --ring-focus viết cứng cũng vậy (đã dính
+  // 01/10/2026, wireframe lớp học: chọn xanh ngọc mà ô tìm focus viền chàm ở mọi nấc). Đo ở khối thiết kế, nền sáng.
+  if (wireframeBar && !document.documentElement.classList.contains("dark")) {
+    const designRoot = document.getElementById("wf-design") || document.body;
+    const sample = document.createElement("span");
+    designRoot.appendChild(sample);
+    const readRgb = (value) => {
+      sample.style.color = "";
+      sample.style.color = value;
+      const color = getComputedStyle(sample).color;
+      // color-mix trả `color(srgb 0.05 0.58 0.53 / 0.1)`, kênh 0–1.
+      const scale = color.startsWith("color(") ? 255 : 1;
+      return (color.replace(/^color\(srgb/, "").match(/[\d.]+/g) || []).slice(0, 3).map((channel) => Math.round(Number(channel) * scale));
+    };
+    const primaryRgb = readRgb("var(--primary)");
+    for (const token of ["--border-focus", "--ring-focus"]) {
+      if (!getComputedStyle(designRoot).getPropertyValue(token).trim()) continue;
+      const tokenRgb = readRgb(`var(${token})`);
+      if (tokenRgb.length === 3 && primaryRgb.length === 3 && tokenRgb.some((channel, index) => Math.abs(channel - primaryRgb[index]) > 6)) {
+        wireframeChromeProblems.push(`token focus không theo màu nhấn: ${token} rgb(${tokenRgb.join(", ")}) trong khi --primary rgb(${primaryRgb.join(", ")}); đổi màu nhấn trên :root và suy lại token (design-process.md)`);
+      }
+    }
+    sample.remove();
   }
   const breakpointQueries = { sm: "(min-width: 40rem)", md: "(min-width: 48rem)", lg: "(min-width: 64rem)", xl: "(min-width: 80rem)", "2xl": "(min-width: 96rem)" };
   const isRectOverlap = (first, second) => first.left < second.right && first.right > second.left && first.top < second.bottom && first.bottom > second.top;
@@ -2906,6 +2938,7 @@ async function probeWidth(browser, options, width) {
   const heavyDecorativeBorders = options.isDark ? [] : await page.evaluate(findHeavyDecorativeBorders);
   const scrollbarStyles = await page.evaluate(findScrollbarStyles);
   const heavyNavLinks = await page.evaluate(findHeavyNavLinks);
+  const staticHoverBlocks = isMobile ? [] : await page.evaluate(findStaticHoverBlocks);
   const brokenImages = await page.evaluate(findBrokenImages);
   const misformattedNumbers = await page.evaluate(findMisformattedNumbers);
   const overflowingLayers = [...new Set([...hoverStates.overflowingLayers, ...popupLayers.overflowing])];
@@ -2914,7 +2947,7 @@ async function probeWidth(browser, options, width) {
   const stateShapes = isMobile ? { shapeMismatches: [], stuckStates: [], hoverLikeSelected: [], groupCount: 0 } : await probeStateShapes(page);
   // Sau cùng thật sự: mỗi lần bấm là một lần tải lại trang.
   const hiddenNativeControls = isMobile ? [] : await page.evaluate(findNativeControls, "hidden");
-  const openerLayers = isMobile ? await probeOpenerLayers(page, options, width) : { problems: [], openedShots: [], nativeControls: [] };
+  const openerLayers = isMobile ? await probeOpenerLayers(page, options, width) : { problems: [], flatLayers: [], openedShots: [], nativeControls: [] };
 
   await context.close();
 
@@ -2928,6 +2961,7 @@ async function probeWidth(browser, options, width) {
     unmarkedFocusStops,
     hollowLayers: popupLayers.hollow,
     openerLayerProblems: openerLayers.problems,
+    flatOpenedLayers: openerLayers.flatLayers,
     openedLayerShots: openerLayers.openedShots,
     layoutShifts: hoverStates.layoutShifts,
     vanishedChildren: hoverStates.vanishedChildren,
@@ -2946,6 +2980,7 @@ async function probeWidth(browser, options, width) {
     heavyDecorativeBorders,
     scrollbarStyles,
     heavyNavLinks,
+    staticHoverBlocks,
     brokenImages,
     misformattedNumbers,
     darkModeProblems,
@@ -3230,6 +3265,26 @@ function findDarkModeProblems() {
 // Mục điều hướng dọc (sidebar) chữ đậm: mẫu của skill là chữ thường 400 cho mục thường, chỉ mục đang chọn
 // `font-medium` (layouts/app.md). Cả cột 600 thì mục đang chọn không còn khác gì ngoài nền, cột nặng hơn nội
 // dung (đã dính 29/09/2026, tim-phong-sua: dựng lại theo nhánh U mà sidebar giữ chữ 600 của CSS cũ).
+// Nền rê trên khối không bấm được (I9 vế ngược): dòng chỉ để đọc mà rê vào tô nền thì trông như bấm được, bấm
+// không ra gì (sót 01/10/2026, lop-hoc: dòng "Lớp hôm nay" `hover:bg-background`, không link, con trỏ thường).
+// Nhận theo class Tailwind `hover:bg-*`; bỏ qua khối có nút ẩn hiện lúc rê (`group-hover:`, list-row.md) hoặc
+// con trỏ bàn tay (div gắn onClick).
+function findStaticHoverBlocks() {
+  const interactiveSelector = "a[href], button, input, select, textarea, label, summary, [role], [tabindex], [onclick], [contenteditable]";
+  const findings = [];
+  for (const node of document.querySelectorAll("[class*='hover:bg-']")) {
+    const classes = (node.getAttribute("class") || "").split(/\s+/);
+    if (!classes.some((name) => /^hover:bg-/.test(name))) continue;
+    const rect = node.getBoundingClientRect();
+    if (rect.width * rect.height < 400 || node.closest(interactiveSelector)) continue;
+    if (getComputedStyle(node).cursor === "pointer" || node.querySelector("[class*='group-hover:']")) continue;
+    const text = (node.textContent || "").replace(/\s+/g, " ").trim().slice(0, 30);
+    findings.push(`${node.tagName.toLowerCase()}.${classes.find((name) => /^hover:bg-/.test(name))} "${text}"`);
+  }
+
+  return [...new Map(findings.map((item) => [item.replace(/ ".*$/, ""), item])).values()].slice(0, 4).map((item) => `${item} (cùng kiểu: ${findings.filter((other) => other.replace(/ ".*$/, "") === item.replace(/ ".*$/, "")).length})`);
+}
+
 function findHeavyNavLinks() {
   // Cột điều hướng nhận bằng hình, không bằng thẻ (sidebar hay dựng bằng div): từ 4 link cùng mép trái, cùng
   // bề rộng 150–360px, xếp dọc.
@@ -3367,12 +3422,15 @@ function markOpenerButtons({ limit, openerSource, actionSource, openerIconPatter
   return openers;
 }
 
+// Panel nằm sẵn ngoài màn (`-translate-x-full`) hay lớp phủ `opacity-0` chưa tính là đang hiện: bấm ☰ thì
+// sidebar trượt vào là lớp mới (sót 01/10/2026, lop-hoc: probe bấm ☰ mà không thấy panel nào mở).
 function markVisibleLayers() {
   for (const node of document.querySelectorAll("body *")) {
     const style = getComputedStyle(node);
     const isPositioned = style.position === "fixed" || style.position === "absolute";
     const rect = node.getBoundingClientRect();
-    if (isPositioned && rect.width * rect.height > 0 && style.visibility !== "hidden" && style.display !== "none") node.dataset.lucasBefore = "1";
+    const isOnScreen = rect.right > 0 && rect.left < window.innerWidth && rect.bottom > 0 && rect.top < window.innerHeight;
+    if (isPositioned && rect.width * rect.height > 0 && isOnScreen && Number(style.opacity) > 0 && style.visibility !== "hidden" && style.display !== "none") node.dataset.lucasBefore = "1";
   }
 }
 
@@ -3406,9 +3464,68 @@ function findOpenedLayerProblems(triggerLabel) {
   const newLayers = [...document.querySelectorAll("body *")].filter((node) => {
     const style = getComputedStyle(node);
 
-    return !node.dataset.lucasBefore && (style.position === "fixed" || style.position === "absolute") && isShown(node);
+    const rect = node.getBoundingClientRect();
+    // Panel vẫn nằm ngoài màn sau khi bấm (sidebar `-translate-x-full` lúc bấm nút khác) chưa phải lớp vừa mở.
+    const isOnScreen = rect.right > 0 && rect.left < viewportWidth && rect.bottom > 0 && rect.top < viewportHeight;
+
+    return !node.dataset.lucasBefore && (style.position === "fixed" || style.position === "absolute") && isOnScreen && isShown(node);
   });
   const roots = newLayers.filter((node) => !newLayers.some((other) => other !== node && other.contains(node)));
+  const flatLayers = [];
+
+  // Tầm bóng: |y| + blur + spread của lớp xa nhất còn màu. So thang bóng (P7): modal, panel > dropdown > card.
+  function readShadowReach(node) {
+    let reach = 0;
+    for (const layer of getComputedStyle(node).boxShadow.split(/,(?![^(]*\))/)) {
+      if (layer.trim() === "none" || layer.includes("inset")) continue;
+      const color = layer.match(/rgba?\(([^)]+)\)/);
+      const alpha = color ? Number(color[1].split(/[ ,/]+/).filter(Boolean)[3] ?? 1) : 1;
+      if (alpha === 0) continue;
+      const lengths = (layer.replace(/rgba?\([^)]+\)/, "").match(/-?[\d.]+px/g) || []).map((value) => Number.parseFloat(value));
+      reach = Math.max(reach, Math.abs(lengths[1] || 0) + (lengths[2] || 0) + (lengths[3] || 0));
+    }
+
+    return reach;
+  }
+
+  function isOpaque(node) {
+    const color = getComputedStyle(node).backgroundColor.match(/rgba?\(([^)]+)\)/);
+    if (!color) return false;
+    const alpha = Number(color[1].split(/[ ,/]+/).filter(Boolean)[3] ?? 1);
+
+    return alpha >= 0.9;
+  }
+
+  // Bóng lớn nhất của khối nằm trong trang (card), để biết dự án có dùng bóng làm thứ bậc không.
+  let pageReach = 0;
+  for (const node of document.querySelectorAll("body *")) {
+    if (newLayers.some((layer) => layer.contains(node))) continue;
+    const rect = node.getBoundingClientRect();
+    if (rect.width * rect.height < 10000 || !isOpaque(node)) continue;
+    // Chỉ khối nằm trong luồng trang: panel `fixed` đang ẩn ngoài màn không phải card.
+    let isInLayer = false;
+    for (let current = node; current && !isInLayer; current = current.parentElement) isInLayer = getComputedStyle(current).position === "fixed";
+    if (isInLayer) continue;
+    pageReach = Math.max(pageReach, readShadowReach(node));
+  }
+
+  for (const root of roots) {
+    // Panel trượt, modal: khối nền đặc cao từ 60% màn hoặc role dialog. Phủ kín cả màn (sheet toàn màn) thì
+    // không có gì phía sau để tách, bỏ qua. Lớp phủ bán trong suốt không phải khối nền đặc.
+    const panel = [root, ...root.querySelectorAll("*")].find((box) => {
+      const rect = box.getBoundingClientRect();
+      const isTall = rect.height >= viewportHeight * 0.6 || ["dialog", "alertdialog"].includes(box.getAttribute("role")) || box.getAttribute("aria-modal") === "true";
+      const isFullScreen = rect.width >= viewportWidth * 0.98 && rect.height >= viewportHeight * 0.98;
+
+      return isShown(box) && isOpaque(box) && isTall && !isFullScreen;
+    });
+    if (panel) {
+      const panelReach = Math.max(readShadowReach(panel), readShadowReach(root));
+      const name = `${panel.tagName.toLowerCase()}${panel.getAttribute("aria-label") ? ` "${panel.getAttribute("aria-label")}"` : ""}`;
+      if (panelReach === 0) flatLayers.push(`bấm "${triggerLabel}": ${name} không có bóng (panel trượt, modal: shadow-modal, layouts/overlay.md)`);
+      else if (pageReach > 0 && panelReach <= pageReach) flatLayers.push(`bấm "${triggerLabel}": bóng ${name} tầm ${Math.round(panelReach)}px không hơn bóng card ${Math.round(pageReach)}px (thang bóng P7)`);
+    }
+  }
 
   for (const root of roots) {
     const isFixed = getComputedStyle(root).position === "fixed";
@@ -3440,7 +3557,7 @@ function findOpenedLayerProblems(triggerLabel) {
     }
   }
 
-  return { problems, openedCount: roots.length };
+  return { problems, flatLayers, openedCount: roots.length };
 }
 
 async function reloadForProbe(page, options) {
@@ -3463,6 +3580,7 @@ async function probeOpenerLayers(page, options, width) {
   };
   const openerLabels = await page.evaluate(markOpenerButtons, markArgs);
   const problems = [];
+  const flatLayers = [];
   const openedShots = [];
   const nativeControls = new Set();
 
@@ -3481,11 +3599,12 @@ async function probeOpenerLayers(page, options, width) {
     await page.screenshot({ path: shotPath });
     openedShots.push(`"${triggerLabel}": ${shotPath}`);
     problems.push(...opened.problems);
+    flatLayers.push(...opened.flatLayers);
   }
 
   if (openerLabels.length > 0) await reloadForProbe(page, options);
 
-  return { problems, openedShots, nativeControls: [...nativeControls] };
+  return { problems, flatLayers, openedShots, nativeControls: [...nativeControls] };
 }
 
 // Kéo bề rộng từ lớn xuống nhỏ trên cùng một trang, đo nhẹ và chụp ở từng bước. Cửa sổ desktop suốt
@@ -3827,6 +3946,10 @@ function formatReport(results) {
       problems.push(`ẢNH KHÔNG TẢI ĐƯỢC (${result.brokenImages.length} ảnh, thay link khác hoặc khai host trong next.config, SKILL.md S16):`);
       for (const item of result.brokenImages) problems.push(`  ${item}`);
     }
+    if (result.staticHoverBlocks?.length > 0) {
+      problems.push(`NỀN RÊ TRÊN KHỐI KHÔNG BẤM ĐƯỢC (${result.staticHoverBlocks.length} kiểu, trông như bấm được mà bấm không ra gì; bỏ hover hoặc cho cả khối là link, I9):`);
+      for (const item of result.staticHoverBlocks) problems.push(`  ${item}`);
+    }
     if (result.heavyNavLinks?.length > 0) {
       problems.push(`SIDEBAR CHỮ ĐẬM HAY MỤC SÁT NHAU (${result.heavyNavLinks.length} chỗ, mục thường chữ 400 text-foreground/70, chỉ mục đang chọn font-medium, các mục cách gap-1, layouts/app.md):`);
       for (const item of result.heavyNavLinks) problems.push(`  ${item}`);
@@ -3937,6 +4060,10 @@ function formatReport(results) {
     if (result.openerLayerProblems.length > 0) {
       problems.push(`LỚP NỔI MỞ BẰNG NÚT BỊ VỠ (${result.openerLayerProblems.length} chỗ):`);
       for (const item of result.openerLayerProblems.slice(0, 6)) problems.push(`  ${item}`);
+    }
+    if (result.flatOpenedLayers.length > 0) {
+      problems.push(`PANEL, MODAL MỞ RA KHÔNG NỔI HƠN TRANG (${result.flatOpenedLayers.length} chỗ, Lệch hệ):`);
+      for (const item of result.flatOpenedLayers.slice(0, 6)) problems.push(`  ${item}`);
     }
     if (result.layoutShifts.length > 0) {
       problems.push(`RÊ CHUỘT LÀM NHẢY BỐ CỤC (${result.layoutShifts.length} chỗ, hover thêm hay nở phần tử, khối bên dưới dời theo):`);
